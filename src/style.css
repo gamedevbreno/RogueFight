@@ -1,0 +1,167 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #06040c;
+  color: #fff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+}
+
+#game {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  display: block;
+  cursor: none;
+}
+
+#overlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at center, rgba(10, 6, 24, 0.72), rgba(4, 2, 10, 0.94));
+  overflow-y: auto;
+}
+#overlay.hidden { display: none; }
+
+.panel { width: min(1080px, 100%); text-align: center; }
+
+.logo {
+  font-size: clamp(48px, 9vw, 104px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-shadow: 0 6px 0 #000;
+}
+.logo span { color: #39e6ff; }
+.logo.end { letter-spacing: 0.12em; }
+.win .logo { color: #3dff8f; }
+.lose .logo { color: #ff3b5c; }
+
+.heading {
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sub {
+  margin: 12px 0 28px;
+  color: #b9a8ff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.sub.ok { color: #3dff8f; margin: 0 0 8px; }
+.heading + .cards { margin-top: 28px; }
+
+.hint { margin-top: 26px; color: #8f84b8; font-size: 13px; letter-spacing: 0.04em; }
+
+.cards { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+
+.card {
+  --c: #fff;
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 400px;
+  padding: 26px 22px 22px;
+  background: #0d0920;
+  border: 3px solid var(--c);
+  color: #fff;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 8px 0 #000;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.card:hover, .card:focus-visible {
+  transform: translateY(-8px);
+  background: #171038;
+  box-shadow: 0 16px 0 #000, 0 0 44px -6px var(--c);
+  outline: none;
+}
+.card h2 {
+  font-size: 23px; font-weight: 900;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--c);
+}
+.card .num {
+  position: absolute; top: 8px; left: 11px;
+  font-size: 13px; font-weight: 900; color: var(--c); opacity: 0.75;
+}
+
+/* ---- seleção de classe ---- */
+.class-card .role { margin: 6px 0 16px; color: #b9a8ff; font-size: 13px; font-weight: 600; }
+.class-card ul { list-style: none; text-align: left; display: grid; gap: 10px; }
+.class-card li { display: grid; grid-template-columns: 86px 1fr; gap: 10px; font-size: 14px; line-height: 1.35; color: #ded6ff; }
+.class-card li b { color: var(--c); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding-top: 2px; }
+.class-card .stats {
+  margin-top: 18px; padding-top: 14px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  display: flex; justify-content: space-around;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: #b9a8ff;
+}
+
+.emblem { width: 84px; height: 84px; margin: 2px auto 14px; position: relative; }
+.emblem::before, .emblem::after { content: ""; position: absolute; }
+/* espada: lâmina + guarda */
+.emblem-blade::before {
+  left: 37px; top: 0; width: 10px; height: 84px;
+  background: linear-gradient(var(--c) 0 66%, #fff 66% 100%);
+  clip-path: polygon(50% 0, 100% 16%, 100% 100%, 0 100%, 0 16%);
+  transform: rotate(40deg);
+}
+.emblem-blade::after {
+  left: 22px; top: 50px; width: 40px; height: 8px;
+  background: #fff; transform: rotate(40deg);
+}
+/* cristal arcano */
+.emblem-mage::before {
+  inset: 6px 18px;
+  background: linear-gradient(135deg, #fff 0 22%, var(--c) 22% 60%, #5a2bbd 60%);
+  clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
+}
+.emblem-mage::after {
+  left: 2px; top: 6px; width: 14px; height: 14px; border-radius: 50%;
+  background: #ff7a3c; box-shadow: 66px 10px 0 #5ad8ff, 56px 58px 0 #ffe14a;
+}
+
+/* ---- cartas de upgrade ---- */
+.up-card { max-width: 300px; min-height: 290px; animation: rise 0.38s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.up-card .tag {
+  display: inline-block; padding: 3px 10px;
+  background: var(--c); color: #05030a;
+  font-size: 11px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.up-card .icon { font-size: 58px; line-height: 1.5; color: var(--c); text-shadow: 0 4px 0 #000; }
+.up-card p { margin-top: 10px; font-size: 15px; line-height: 1.45; color: #ded6ff; min-height: 66px; }
+.pips { margin-top: 14px; display: flex; gap: 6px; justify-content: center; }
+.pips i { width: 20px; height: 6px; background: #2c2350; }
+.pips i.on { background: var(--c); }
+.pips i.next { background: #fff; animation: blink 0.8s steps(2) infinite; }
+
+/* ---- fim de jogo ---- */
+.summary { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.summary div { min-width: 132px; padding: 14px 18px; background: #0d0920; border: 2px solid #35277a; }
+.summary b { display: block; font-size: 24px; font-weight: 900; }
+.summary span { font-size: 11px; font-weight: 700; color: #8f84b8; letter-spacing: 0.14em; text-transform: uppercase; }
+.build { color: #b9a8ff; font-size: 14px; line-height: 1.6; margin-bottom: 26px; }
+.btn {
+  flex: none; display: inline-block;
+  padding: 16px 44px;
+  font-size: 18px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--c);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(46px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .up-card, .pips i.next { animation: none; }
+  .card { transition: none; }
+}
