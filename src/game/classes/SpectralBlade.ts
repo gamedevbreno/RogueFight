@@ -270,8 +270,9 @@ export class SpectralBlade implements ClassKit {
     const pose = this.pose(p);
 
     // a espada continua girando por código: aponta exatamente para onde o golpe acerta
-    let sa = p.aim + 2.1;
-    let len = 56;
+    // em repouso ela fica em guarda, apontando para a mira
+    let sa = p.aim + 0.3;
+    let len = 66;
     if (this.windT > 0) {
       sa = this.thrustAng;
       len = 34;
@@ -283,13 +284,10 @@ export class SpectralBlade implements ClassKit {
       const u = 1 - this.swingT / this.swingDur;
       const e = easeOut(Math.min(1, u / 0.55));
       sa = this.swingAng + this.sweep * (-s.half + 2 * s.half * e);
-      len = 66;
+      len = 76;
     }
     const c = Math.cos(sa), s = Math.sin(sa);
-    const sword = () => {
-      r.flat(SHEETS.sword, x + c * 12, y + s * 12, 30, sa, len);
-      r.glow(x + c * (len + 8), y + s * (len + 8), 30, 6, COLOR, 0.5);
-    };
+    const sword = () => r.flat(SHEETS.sword, x + c * 12, y + s * 12, 30, sa, len);
 
     if (s < 0) sword(); // espada "atrás" do corpo quando aponta para o fundo
     r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, pose);

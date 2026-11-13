@@ -191,13 +191,14 @@ export class Renderer {
   flat(s: Sheet, x: number, y: number, z: number, ang: number, len: number): void {
     if (!s.ready) return;
     const d = s.def;
-    const k = len / (d.cw - d.ax - 11); // 11 px de folga após a ponta
+    const k = len / (d.cw - d.ax - 45); // 45 px de folga após a ponta
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(this.X(x), this.Y(y, z));
     ctx.scale(1, TILT);
     ctx.rotate(ang);
-    ctx.drawImage(s.img, -d.ax * k, -d.ay * k, d.cw * k, d.ch * k);
+    const wide = 1.5; // engrossa a lâmina: ela ficaria fina demais depois do achatamento do TILT
+    ctx.drawImage(s.img, -d.ax * k, -d.ay * k * wide, d.cw * k, d.ch * k * wide);
     ctx.restore();
   }
 
