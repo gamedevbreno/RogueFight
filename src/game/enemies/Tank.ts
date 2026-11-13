@@ -1,6 +1,7 @@
-import { clamp, lerp, shade } from '../../core/math';
+import { clamp, lerp } from '../../core/math';
 import { Ring } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
+import { SHEETS } from '../../render/Sprites';
 import type { World } from '../World';
 import { Enemy } from './Enemy';
 
@@ -8,6 +9,7 @@ const COLOR = '#a6ff3d';
 const SLAM_R = 125;
 const LEAP_T = 1.05;
 const CROUCH_T = 0.32;
+const RECOVER_T = 0.9;
 
 /** Tanque lento: salta (eixo Z real) e esmaga uma área telegrafada no chão. */
 export class Tank extends Enemy {
@@ -16,9 +18,11 @@ export class Tank extends Enemy {
   private cd = 1;
   private sx = 0; private sy = 0;
   private tx = 0; private ty = 0;
+  private ang = 0;
+  private clock = 0;
 
   constructor(x: number, y: number, hpScale: number) {
-    super(x, y, { hp: 150 * hpScale, radius: 32, speed: 62, color: COLOR, knockMul: 0.18, height: 56 });
+    super(x, y, { hp: 150 * hpScale, radius: 32, speed: 62, color: COLOR, knockMul: 0.18, height: 92 });
   }
 
   protected ai(dt: number, w: World, slow: number): void {
@@ -28,6 +32,8 @@ export class Tank extends Enemy {
     this.cd -= dt;
 
     if (this.state === 'walk') {
+      this.ang = Math.atan2(dy, dx);
+      this.clock += dt * slow;
       this.x += (dx / d) * this.speed * slow * dt;
       this.y += (dy / d) * this.speed * slow * dt;
       if (d < 250 && this.cd <= 0) {
@@ -59,7 +65,7 @@ export class Tank extends Enemy {
   private land(w: World): void {
     this.z = 0;
     this.state = 'recover';
-    this.t = 0.9;
+    this.t = RECOVER_T;
     w.fx.push(new Ring(this.x, this.y, 30, SLAM_R, 0.35, '#ff3030', 8, true));
     w.particles.burst(this.x, this.y, 4, 30, '#ff8a6a', 420, { up: 260, size: 6 });
     w.sfx.play('slam');
@@ -78,21 +84,20 @@ export class Tank extends Enemy {
   }
 
   protected drawBody(r: Renderer): void {
-    const x = this.rx, y = this.ry;
-    const crouch = this.state === 'leap' && this.t < CROUCH_T ? this.t / CROUCH_T : 0;
-    const h = 52 * (1 - 0.3 * crouch);
-    const hw = 30 * (1 + 0.12 * crouch), hd = 22;
-    const base = this.tint(COLOR);
-    const c = (k: number) => (base === '#ffffff' ? base : shade(base, k));
-
-    r.box(x, y, this.rz, hw, hd, h, c(1), c(0.5));
-    // capacete + visor
-    r.box(x, y - 2, this.rz + h, hw * 0.55, hd * 0.6, 12, c(0.85), c(0.38));
-    const ctx = r.ctx;
-    ctx.fillStyle = this.state === 'leap' ? '#ff3030' : '#10220a';
-    ctx.fillRect(r.X(x - hw * 0.7), r.Y(y + hd, this.rz + h * 0.72), hw * 1.4, 7);
-    ctx.strokeStyle = '#10220a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(r.X(x - hw), r.Y(y - hd, this.rz + h), hw * 2, r.Y(y + hd, this.rz) - r.Y(y - hd, this.rz + h));
+    let anim = 'walk';
+    let frame = Math.floor(this.clock * 5) % 4;
+    if (this.state === 'leap') {
+      // agacha (2 frames, visor vermelho) e depois o frame de salto com os punhos erguidos
+      anim = 'leap';
+      frame = this.t < CROUCH_T / 2 ? 0 : this.t < CROUCH_T ? 1 : 2;
+    } else if (this.state === 'recover') {
+      anim = 'slam';
+      frame = (1 - this.t / RECOVER_T) * 3;
+    }
+    r.sprite(SHEETS.tank, anim, frame, this.rx, this.ry, this.rz, {
+      flip: Math.cos(this.ang) < 0,
+      north: Math.sin(this.ang) < -0.2,
+      tint: this.flash > 0 ? '#ffffff' : undefined,
+    });
   }
 }

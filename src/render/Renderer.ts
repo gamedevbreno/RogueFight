@@ -1,5 +1,15 @@
 import { TAU } from '../core/math';
 import { ARENA, TILT, VIEW_H } from '../game/config';
+import { SHEETS, type Sheet } from './Sprites';
+
+export interface SpriteOpts {
+  flip?: boolean; // espelha no eixo X (personagem olhando para a esquerda)
+  north?: boolean; // usa as linhas da vista de costas
+  tint?: string; // desenha a silhueta em cor sólida (flash branco, rastros)
+  alpha?: number;
+  add?: boolean; // mistura aditiva (brilho)
+  scale?: number;
+}
 
 /**
  * Renderer 2.5D: o mundo é um plano (x, y) com altura simulada z.
@@ -146,7 +156,53 @@ export class Renderer {
     ctx.stroke();
   }
 
-  drawArena(): void {
+  /**
+   * Desenha um frame de spritesheet com a âncora (pés) em (x, y, z) do mundo.
+   * `frame` é limitado ao intervalo da animação; quem chama faz o módulo em loops.
+   */
+  sprite(s: Sheet, anim: string, frame: number, x: number, y: number, z: number, o: SpriteOpts = {}): void {
+    if (!s.ready) return;
+    const d = s.def;
+    const a = d.anims[anim];
+    const f = Math.max(0, Math.min(a.frames - 1, Math.floor(frame)));
+    const row = a.row + (o.north ? s.rows : 0);
+    const k = d.scale * (o.scale ?? 1);
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(this.X(x), this.Y(y, z));
+    ctx.scale(o.flip ? -k : k, k);
+    if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
+    if (o.add) ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(o.tint ? s.mask(o.tint) : s.img, f * d.cw, row * d.ch, d.cw, d.ch, -d.ax, -d.ay, d.cw, d.ch);
+    ctx.restore();
+  }
+
+  /** Imagem inteira (sem animação) ancorada em (x, y, z). */
+  image(s: Sheet, x: number, y: number, z = 0): void {
+    if (!s.ready) return;
+    const d = s.def;
+    this.ctx.drawImage(s.img, this.X(x) - d.ax * d.scale, this.Y(y, z) - d.ay * d.scale, d.cw * d.scale, d.ch * d.scale);
+  }
+
+  /**
+   * Sprite "deitado" no plano horizontal em altura z e girado por `ang` no mundo
+   * (a espada): o TILT entra na matriz, então o giro acompanha a perspectiva do chão.
+   */
+  flat(s: Sheet, x: number, y: number, z: number, ang: number, len: number): void {
+    if (!s.ready) return;
+    const d = s.def;
+    const k = len / (d.cw - d.ax - 11); // 11 px de folga após a ponta
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(this.X(x), this.Y(y, z));
+    ctx.scale(1, TILT);
+    ctx.rotate(ang);
+    ctx.drawImage(s.img, -d.ax * k, -d.ay * k, d.cw * k, d.ch * k);
+    ctx.restore();
+  }
+
+  /** Piso, parede norte e pilares do fundo: tudo que fica ATRÁS das entidades. */
+  drawArena(t: number): void {
     const ctx = this.ctx;
     const hw = ARENA.w / 2;
     const hh = ARENA.h / 2;
@@ -154,33 +210,84 @@ export class Renderer {
     const x1 = this.X(hw);
     const y0 = this.Y(-hh);
     const y1 = this.Y(hh);
-    const T = 100;
 
-    // face frontal da plataforma (dá volume ao chão)
-    ctx.fillStyle = '#0d0820';
-    ctx.fillRect(x0, y1, x1 - x0, 54);
-    ctx.fillStyle = '#3b2a8a';
-    ctx.fillRect(x0, y1, x1 - x0, 3);
-
-    // piso xadrez
-    for (let i = 0; i < ARENA.w / T; i++) {
-      for (let j = 0; j < ARENA.h / T; j++) {
-        ctx.fillStyle = (i + j) % 2 ? '#150f2b' : '#1a1335';
-        const tx = this.X(-hw + i * T);
-        const ty = this.Y(-hh + j * T);
-        ctx.fillRect(tx, ty, T + 0.5, T * TILT + 0.5);
+    // piso: tile de 400x400 unidades, recortado no retângulo da arena
+    const tile = SHEETS.tile;
+    if (tile.ready) {
+      const TW = 400;
+      const TH = 400 * TILT;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y0, x1 - x0, y1 - y0);
+      ctx.clip();
+      for (let i = 0; i * TW < ARENA.w; i++) {
+        for (let j = 0; j * 400 < ARENA.h; j++) {
+          const tx = x0 + i * TW;
+          const ty = y0 + j * TH;
+          if (tx > this.w || tx + TW < 0 || ty > this.h || ty + TH < 0) continue; // fora da tela
+          ctx.drawImage(tile.img, tx, ty, TW + 0.5, TH + 0.5);
+        }
       }
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#1a1335';
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     }
 
-    // parede do fundo
-    ctx.fillStyle = '#241a4d';
-    ctx.fillRect(x0, y0 - 80, x1 - x0, 80);
-    ctx.fillStyle = '#35277a';
-    ctx.fillRect(x0, y0 - 80, x1 - x0, 6);
+    // laterais: a câmera vê essas paredes de perfil, então viram frisos
+    ctx.fillStyle = '#150e33';
+    ctx.fillRect(x0 - 14, y0, 14, y1 - y0);
+    ctx.fillRect(x1, y0, 14, y1 - y0);
 
-    // borda neon
-    ctx.strokeStyle = '#7a5cff';
-    ctx.lineWidth = 3;
+    // parede norte (repete a cada 200 unidades)
+    const wall = SHEETS.wall;
+    if (wall.ready) {
+      for (let i = 0; i * 200 < ARENA.w; i++) {
+        ctx.drawImage(wall.img, 0, 0, 400, 160, x0 + i * 200, y0 - 78, 200.5, 80);
+      }
+    } else {
+      ctx.fillStyle = '#241a4d';
+      ctx.fillRect(x0, y0 - 80, x1 - x0, 80);
+    }
+
+    ctx.strokeStyle = 'rgba(122,92,255,0.75)';
+    ctx.lineWidth = 2.5;
     ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+
+    const back = [[-hw - 34, -hh + 8], [hw + 34, -hh + 8], [-300, -hh - 4], [300, -hh - 4], [-hw - 34, 0], [hw + 34, 0]];
+    for (const [px, py] of back) this.pillar(px, py, t);
+  }
+
+  /** Borda sul e pilares da frente: desenhados DEPOIS das entidades (ficam por cima). */
+  drawArenaFront(t: number): void {
+    const ctx = this.ctx;
+    const hw = ARENA.w / 2;
+    const hh = ARENA.h / 2;
+    const x0 = this.X(-hw);
+    const y1 = this.Y(hh);
+    const wall = SHEETS.wall;
+    if (wall.ready) {
+      for (let i = 0; i * 200 < ARENA.w; i++) {
+        ctx.drawImage(wall.img, 0, 160, 400, 128, x0 + i * 200, y1 - 8.3, 200.5, 64);
+      }
+    } else {
+      ctx.fillStyle = '#0d0820';
+      ctx.fillRect(x0, y1, ARENA.w, 56);
+    }
+    // a face da plataforma some na escuridão
+    const g = ctx.createLinearGradient(0, y1 + 8, 0, y1 + 58);
+    g.addColorStop(0, 'rgba(6,4,12,0)');
+    g.addColorStop(1, 'rgba(6,4,12,1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x0 - 20, y1 + 8, ARENA.w + 40, 52);
+    this.pillar(-hw - 34, hh + 6, t);
+    this.pillar(hw + 34, hh + 6, t);
+  }
+
+  private pillar(x: number, y: number, t: number): void {
+    this.shadow(x, y, 44);
+    this.image(SHEETS.pillar, x, y);
+    // cristal do topo pulsa
+    this.glow(x, y, 124, 13 + 4 * Math.sin(t * 2.2 + x * 0.01), '#9d7bff', 0.4);
   }
 }

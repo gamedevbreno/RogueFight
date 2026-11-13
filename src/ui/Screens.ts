@@ -62,7 +62,7 @@ export class Screens {
     const cards = defs.map((d, i) => `
       <button class="card class-card" style="--c:${d.color}">
         <span class="num">${i + 1}</span>
-        <div class="emblem emblem-${d.id}"></div>
+        <div class="portrait" style="background-image:url(${import.meta.env.BASE_URL}sprites/player_${d.id}.png)"></div>
         <h2>${d.name}</h2>
         <p class="role">${d.role}</p>
         <ul>${d.abilities.map((a) => `<li><b>${a.key}</b><span>${a.text}</span></li>`).join('')}</ul>

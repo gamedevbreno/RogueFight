@@ -1,10 +1,12 @@
-import { rand, shade } from '../../core/math';
+import { rand } from '../../core/math';
 import type { Renderer } from '../../render/Renderer';
+import { SHEETS } from '../../render/Sprites';
 import { Projectile } from '../Projectile';
 import type { World } from '../World';
 import { Enemy } from './Enemy';
 
 const COLOR = '#ffb02e';
+const WIND_T = 0.5;
 
 /** Atirador: mantém distância, orbita o jogador e dispara projéteis que voam em Z. */
 export class Shooter extends Enemy {
@@ -17,7 +19,7 @@ export class Shooter extends Enemy {
   private clock = 0;
 
   constructor(x: number, y: number, hpScale: number) {
-    super(x, y, { hp: 22 * hpScale, radius: 15, speed: 115, color: COLOR, knockMul: 1, height: 52 });
+    super(x, y, { hp: 22 * hpScale, radius: 15, speed: 115, color: COLOR, knockMul: 1, height: 72 });
   }
 
   protected ai(dt: number, w: World, slow: number): void {
@@ -56,28 +58,22 @@ export class Shooter extends Enemy {
       this.flipT = rand(2, 4);
     }
 
-    if ((this.shootT -= dt) <= 0 && d < 680) this.wind = 0.5;
+    if ((this.shootT -= dt) <= 0 && d < 680) this.wind = WIND_T;
   }
 
   protected drawBody(r: Renderer): void {
     const x = this.rx, y = this.ry;
     const charging = this.wind > 0;
-    const zc = 30 + Math.sin(this.clock * 3 + this.seed) * 4; // centro flutuante
-    const s = 15, hh = 22;
-    const base = charging && Math.floor(this.wind * 24) % 2 ? '#ffffff' : this.tint(COLOR);
-    const c = (k: number) => (base === '#ffffff' ? base : shade(base, k));
-    const top = [x, y, zc + hh], bot = [x, y, zc - hh];
-    const L = [x - s, y, zc], R = [x + s, y, zc], F = [x, y + s, zc];
+    const bob = Math.sin(this.clock * 3 + this.seed) * 4; // flutuação em Z por código
+    const u = charging ? 1 - this.wind / WIND_T : 0;
+    const white = this.flash > 0 || (charging && Math.floor(this.wind * 24) % 2 === 1);
 
-    // octaedro: 4 faces visíveis
-    r.poly([...top, ...L, ...F], c(1), '#3a2400', 1.5);
-    r.poly([...top, ...F, ...R], c(0.75), '#3a2400', 1.5);
-    r.poly([...bot, ...L, ...F], c(0.55), '#3a2400', 1.5);
-    r.poly([...bot, ...F, ...R], c(0.38), '#3a2400', 1.5);
-
-    // "olho" que aponta para o alvo e acende ao carregar
-    const ex = x + Math.cos(this.ang) * 7, ey = y + Math.sin(this.ang) * 7;
-    if (charging) r.glow(ex, ey, zc, 16 * (1 - this.wind / 0.5) + 6, '#fff2c0', 0.6);
-    r.disc(ex, ey, zc, 3.5, '#1a0f00');
+    r.sprite(SHEETS.shooter, charging ? 'charging' : 'float', charging ? u * 3 : Math.floor(this.clock * 8) % 4, x, y, bob, {
+      flip: Math.cos(this.ang) < 0,
+      north: Math.sin(this.ang) < -0.2,
+      tint: white ? '#ffffff' : undefined,
+    });
+    // o olho acende enquanto carrega o disparo
+    if (charging) r.glow(x + Math.cos(this.ang) * 12, y + Math.sin(this.ang) * 12, 36 + bob, 8 + 16 * u, '#fff2c0', 0.6);
   }
 }

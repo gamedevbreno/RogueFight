@@ -2,6 +2,7 @@ import type { Input } from '../../core/Input';
 import { angleDiff, easeOut } from '../../core/math';
 import { Ghost, Ring, SlashArc, Streak } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
+import { SHEETS } from '../../render/Sprites';
 import type { Enemy } from '../enemies/Enemy';
 import type { Player } from '../Player';
 import { Projectile } from '../Projectile';
@@ -9,7 +10,6 @@ import type { Actor, World } from '../World';
 import type { ClassDef, ClassKit } from './ClassKit';
 
 const COLOR = '#39e6ff';
-const DARK = '#0b3442';
 
 /** Combo de 3 cortes: os dois primeiros rápidos, o terceiro pesado (hitstop + shake). */
 const SWINGS = [
@@ -22,26 +22,23 @@ const HIT_AT = 0.3; // fração do golpe em que o dano acontece
 const DASH_T = 0.15, DASH_SPEED = 1150, DASH_CD = 0.85;
 const WINDUP_T = 0.11, THRUST_T = 0.16, THRUST_SPEED = 1550, THRUST_CD = 3.5;
 
-function body(r: Renderer, x: number, y: number, fill: string, stroke: string | null): void {
-  // capa em forma de pipa + cabeça
-  r.poly([x - 12, y, 0, x + 12, y, 0, x + 9, y, 28, x, y, 36, x - 9, y, 28], fill, stroke, 2);
-  r.disc(x, y, 42, 7, stroke ?? fill);
+interface Pose {
+  anim: string;
+  frame: number;
+  flip: boolean;
+  north: boolean;
 }
 
-function silhouette(r: Renderer, x: number, y: number, alpha: number): void {
-  const ctx = r.ctx;
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = alpha;
-  body(r, x, y, COLOR, null);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
+/** Silhueta em ciano aditivo de um frame: rastros de dash, clones e brilho de i-frames. */
+function silhouette(r: Renderer, x: number, y: number, alpha: number, pose: Pose): void {
+  r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, { flip: pose.flip, north: pose.north, tint: COLOR, alpha, add: true });
 }
 
 /** Upgrade "Eco Espectral": clone deixado pelo dash que executa um corte giratório. */
 class BladeClone implements Actor {
   dead = false;
   private t = 0.4;
-  constructor(public x: number, public y: number, private p: Player, private stacks: number) {}
+  constructor(public x: number, public y: number, private p: Player, private stacks: number, private pose: Pose) {}
   update(dt: number, w: World): void {
     if ((this.t -= dt) > 0) return;
     this.dead = true;
@@ -56,7 +53,7 @@ class BladeClone implements Actor {
     r.ellipse(this.x, this.y, 0, 118 * (1 - this.t / 0.4), null, 'rgba(57,230,255,0.35)', 2);
   }
   draw(r: Renderer): void {
-    silhouette(r, this.x, this.y, 0.45 + 0.25 * Math.sin(this.t * 40));
+    silhouette(r, this.x, this.y, 0.55 + 0.25 * Math.sin(this.t * 40), this.pose);
   }
 }
 
@@ -99,7 +96,7 @@ export class SpectralBlade implements ClassKit {
       const c = Math.cos(this.thrustAng), s = Math.sin(this.thrustAng);
       p.x += c * THRUST_SPEED * dt;
       p.y += s * THRUST_SPEED * dt;
-      w.fx.push(new Ghost(p.x, p.y, silhouette, 0.22));
+      w.fx.push(new Ghost(p.x, p.y, this.ghost(p), 0.22));
       for (const e of w.enemiesInCircle(p.x, p.y, 44)) {
         if (this.thrustHits.has(e)) continue;
         if (this.thrustHits.size === 0) {
@@ -125,7 +122,7 @@ export class SpectralBlade implements ClassKit {
       p.controlled = true;
       p.x += this.dx * DASH_SPEED * dt;
       p.y += this.dy * DASH_SPEED * dt;
-      w.fx.push(new Ghost(p.x, p.y, silhouette));
+      w.fx.push(new Ghost(p.x, p.y, this.ghost(p)));
       const cut = p.up('dashcut');
       if (cut) {
         for (const e of w.enemiesInCircle(p.x, p.y, 30)) {
@@ -152,7 +149,7 @@ export class SpectralBlade implements ClassKit {
       w.sfx.play('dash');
       w.particles.burst(p.x, p.y, 10, 8, COLOR, 200, { dir: ang + Math.PI, cone: 0.6 });
       const clones = p.up('clone');
-      if (clones) w.actors.push(new BladeClone(p.x, p.y, p, clones));
+      if (clones) w.actors.push(new BladeClone(p.x, p.y, p, clones, { anim: 'attack', frame: 0, flip: this.dx < 0, north: this.dy < 0 }));
       return;
     }
     if (p.secCd <= 0 && input.consume('secondary')) {
@@ -234,36 +231,70 @@ export class SpectralBlade implements ClassKit {
     if (s.heavy) w.fx.push(new Ring(p.x, p.y, 20, range * 0.9, 0.22, COLOR, 3));
   }
 
+  /** Escolhe animação, frame e direção do sprite a partir do estado de combate. */
+  private pose(p: Player): Pose {
+    let ang = p.aim;
+    let anim = 'idle';
+    let frame = Math.floor(p.t * 6) % 4;
+    if (this.windT > 0) {
+      anim = 'dash';
+      frame = 0;
+      ang = this.thrustAng;
+    } else if (this.thrustT > 0) {
+      anim = 'dash';
+      frame = 1;
+      ang = this.thrustAng;
+    } else if (this.dashT > 0) {
+      anim = 'dash';
+      frame = 1;
+      ang = Math.atan2(this.dy, this.dx);
+    } else if (this.swingT > 0) {
+      anim = 'attack';
+      frame = Math.min(3, Math.floor((1 - this.swingT / this.swingDur) * 4));
+      ang = this.swingAng;
+    } else if (p.moving) {
+      anim = 'run';
+      frame = Math.floor(p.t * 12) % 6;
+    }
+    return { anim, frame, flip: Math.cos(ang) < 0, north: Math.sin(ang) < -0.2 };
+  }
+
+  /** Congela a pose atual para o Ghost (rastro) redesenhar enquanto some. */
+  private ghost(p: Player): (r: Renderer, x: number, y: number, alpha: number) => void {
+    const pose = this.pose(p);
+    return (r, x, y, alpha) => silhouette(r, x, y, alpha, pose);
+  }
+
   draw(r: Renderer, p: Player): void {
     const x = p.rx, y = p.ry;
-    // ângulo/comprimento da espada conforme o estado
+    const pose = this.pose(p);
+
+    // a espada continua girando por código: aponta exatamente para onde o golpe acerta
     let sa = p.aim + 2.1;
-    let len = 50;
+    let len = 56;
     if (this.windT > 0) {
       sa = this.thrustAng;
-      len = 26;
+      len = 34;
     } else if (this.thrustT > 0) {
       sa = this.thrustAng;
-      len = 74;
+      len = 84;
     } else if (this.swingT > 0) {
       const s = SWINGS[this.idx];
       const u = 1 - this.swingT / this.swingDur;
       const e = easeOut(Math.min(1, u / 0.55));
       sa = this.swingAng + this.sweep * (-s.half + 2 * s.half * e);
-      len = 58;
+      len = 66;
     }
     const c = Math.cos(sa), s = Math.sin(sa);
     const sword = () => {
-      r.line(x + c * 10, y + s * 10, 22, x + c * len, y + s * len, 22, '#06222b', 7);
-      r.line(x + c * 10, y + s * 10, 22, x + c * len, y + s * len, 22, '#eaffff', 3.5);
-      r.glow(x + c * len, y + s * len, 22, 7, COLOR, 0.5);
+      r.flat(SHEETS.sword, x + c * 12, y + s * 12, 30, sa, len);
+      r.glow(x + c * (len + 8), y + s * (len + 8), 30, 6, COLOR, 0.5);
     };
 
     if (s < 0) sword(); // espada "atrás" do corpo quando aponta para o fundo
-    body(r, x, y, DARK, COLOR);
-    r.disc(x + Math.cos(p.aim) * 3, y, 42, 2.5, '#06222b'); // visor
+    r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, pose);
     if (s >= 0) sword();
-    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5);
+    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5, pose);
   }
 }
 

@@ -171,9 +171,10 @@ export class Game {
     r.shakeY = (Math.random() * 2 - 1) * 20 * s;
 
     r.begin();
-    r.drawArena();
+    r.drawArena(this.clock);
+    if (w) w.draw(r);
+    r.drawArenaFront(this.clock);
     if (w) {
-      w.draw(r);
       r.shakeX = r.shakeY = 0;
       this.hud.draw(r, {
         player: w.player,

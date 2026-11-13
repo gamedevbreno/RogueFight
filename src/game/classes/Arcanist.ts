@@ -2,6 +2,7 @@ import type { Input } from '../../core/Input';
 import { TAU } from '../../core/math';
 import { Bolt, Ghost, Ring, Streak } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
+import { SHEETS } from '../../render/Sprites';
 import { ELEMENTS } from '../config';
 import type { Enemy } from '../enemies/Enemy';
 import type { Player } from '../Player';
@@ -10,24 +11,13 @@ import type { Actor, World } from '../World';
 import type { ClassDef, ClassKit } from './ClassKit';
 
 const COLOR = '#c78bff';
-const DARK = '#2d1458';
 const FIRE_INTERVAL = 0.2;
 const BLINK_DIST = 240, BLINK_CD = 2.0, PULSE_R = 150;
 const BLAST_R = 125, BLAST_CD = 5, BLAST_RANGE = 540;
 
-function body(r: Renderer, x: number, y: number, fill: string, stroke: string | null): void {
-  // manto trapezoidal + chapéu pontudo
-  r.poly([x - 14, y, 0, x + 14, y, 0, x + 6, y, 34, x - 6, y, 34], fill, stroke, 2);
-  r.poly([x - 13, y, 36, x + 13, y, 36, x + 2, y, 62], fill, stroke, 2);
-}
-
-function silhouette(r: Renderer, x: number, y: number, alpha: number): void {
-  const ctx = r.ctx;
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = alpha;
-  body(r, x, y, COLOR, null);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
+/** Silhueta lilás aditiva (rastro do Blink e brilho de i-frames). */
+function silhouette(r: Renderer, x: number, y: number, alpha: number, flip = false, north = false): void {
+  r.sprite(SHEETS.mage, 'idle', 0, x, y, 0, { flip, north, tint: COLOR, alpha, add: true });
 }
 
 interface BlastOpts {
@@ -87,10 +77,12 @@ export class Arcanist implements ClassKit {
   private fireT = 0;
   private el = 0; // próximo elemento do ciclo Brasa -> Geada -> Raio
   private clock = 0;
+  private castT = 0; // tempo restante da pose de conjuração
 
   update(dt: number, p: Player, w: World, input: Input): void {
     this.fireT -= dt;
     this.clock += dt;
+    if (this.castT > 0) this.castT -= dt;
 
     if (p.dashCd <= 0 && input.consume('dash')) this.blink(p, w, input);
     if (p.secCd <= 0 && input.consume('secondary')) this.castBlast(p, w);
@@ -103,6 +95,7 @@ export class Arcanist implements ClassKit {
 
   private shoot(p: Player, w: World): void {
     this.fireT = FIRE_INTERVAL / p.stats.haste;
+    this.castT = Math.max(this.castT, 0.22);
     const el = this.el;
     this.el = (el + 1) % 3;
     const n = 1 + p.up('multishot');
@@ -192,7 +185,8 @@ export class Arcanist implements ClassKit {
     p.iframes = Math.max(p.iframes, 0.3);
     p.dashCd = p.dashCdMax = BLINK_CD * p.stats.dashCd;
 
-    w.fx.push(new Ghost(ox, oy, silhouette, 0.4));
+    const flip = Math.cos(ang) < 0, north = Math.sin(ang) < -0.2;
+    w.fx.push(new Ghost(ox, oy, (r, x, y, a) => silhouette(r, x, y, a, flip, north), 0.4));
     w.fx.push(new Streak(ox, oy, p.x, p.y, 26, COLOR, 0.25, 6));
     w.particles.burst(ox, oy, 26, 14, COLOR, 220);
     // pulso de repulsão na chegada
@@ -221,26 +215,39 @@ export class Arcanist implements ClassKit {
     const big = 1 + 0.25 * p.up('bigblast');
     w.actors.push(new Blast(tx, ty, { radius: BLAST_R * big, delay: 0.35, damage: 24 * big, detonate: true, color: COLOR, heavy: true }, p, this));
     p.secCd = p.secCdMax = BLAST_CD * p.stats.secCd;
+    this.castT = 0.42;
     w.sfx.play('cast');
   }
 
   draw(r: Renderer, p: Player): void {
     const x = p.rx, y = p.ry;
-    // 3 cristais elementais orbitando; o próximo a ser disparado fica maior
+    const flip = Math.cos(p.aim) < 0;
+    const north = Math.sin(p.aim) < -0.2;
+    let anim = 'idle';
+    let frame = Math.floor(p.t * 6) % 4;
+    if (this.castT > 0) {
+      anim = 'cast';
+      frame = this.castT > 0.14 ? 1 : 2;
+    } else if (p.moving) {
+      anim = 'run';
+      frame = Math.floor(p.t * 12) % 6;
+    }
+
+    // 3 cristais elementais orbitando por código; o próximo a ser disparado fica maior
     const orbs = [0, 1, 2].map((i) => {
       const a = this.clock * 2.4 + (i * TAU) / 3;
-      return { i, ox: x + Math.cos(a) * 24, oy: y + Math.sin(a) * 24, z: 30 + Math.sin(this.clock * 3 + i) * 4 };
+      return { i, ox: x + Math.cos(a) * 34, oy: y + Math.sin(a) * 34, z: 40 + Math.sin(this.clock * 3 + i) * 5 };
     });
     const drawOrb = (o: (typeof orbs)[number]) => {
       const big = o.i === this.el;
-      r.glow(o.ox, o.oy, o.z, big ? 10 : 6, ELEMENTS[o.i].color, 0.45);
+      r.glow(o.ox, o.oy, o.z, big ? 12 : 7, ELEMENTS[o.i].color, 0.45);
+      r.disc(o.ox, o.oy, o.z, big ? 6.5 : 4.2, '#0a0614');
       r.disc(o.ox, o.oy, o.z, big ? 5 : 3.2, ELEMENTS[o.i].color);
     };
     for (const o of orbs) if (o.oy < y) drawOrb(o);
-    body(r, x, y, DARK, COLOR);
-    r.disc(x + Math.cos(p.aim) * 3, y, 30, 2.5, '#f3e6ff');
+    r.sprite(SHEETS.mage, anim, frame, x, y, 0, { flip, north });
     for (const o of orbs) if (o.oy >= y) drawOrb(o);
-    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5);
+    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5, flip, north);
   }
 }
 

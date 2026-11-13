@@ -37,6 +37,7 @@ export class Player {
   dead = false;
 
   /** Definidos pelo kit a cada passo. */
+  moving = false; // andando por input (escolhe idle/run no sprite)
   controlled = false; // kit está dirigindo o movimento (dash/estocada)
   moveFactor = 1;
 
@@ -82,8 +83,10 @@ export class Player {
     this.moveFactor = 1;
     this.kit.update(dt, this, w, input);
 
+    this.moving = false;
     if (!this.controlled) {
       const a = input.axis();
+      this.moving = a.x !== 0 || a.y !== 0;
       this.x += a.x * this.stats.speed * this.moveFactor * dt;
       this.y += a.y * this.stats.speed * this.moveFactor * dt;
     }
@@ -101,7 +104,11 @@ export class Player {
   }
 
   drawGround(r: Renderer): void {
-    r.shadow(this.rx, this.ry, 17);
+    r.shadow(this.rx, this.ry, 19);
+    // anel na cor da classe: mantém o jogador legível sobre o piso escuro
+    r.ctx.globalAlpha = 0.55;
+    r.ellipse(this.rx, this.ry, 0, 23, null, this.def.color, 2);
+    r.ctx.globalAlpha = 1;
   }
 
   draw(r: Renderer): void {
