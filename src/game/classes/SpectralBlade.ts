@@ -2,7 +2,7 @@ import type { Input } from '../../core/Input';
 import { angleDiff, easeOut } from '../../core/math';
 import { Ghost, Ring, SlashArc, Streak } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS } from '../../render/Sprites';
+import { SHEETS, facing, type Facing } from '../../render/Sprites';
 import type { Enemy } from '../enemies/Enemy';
 import type { Player } from '../Player';
 import { Projectile } from '../Projectile';
@@ -22,16 +22,14 @@ const HIT_AT = 0.3; // fração do golpe em que o dano acontece
 const DASH_T = 0.15, DASH_SPEED = 1150, DASH_CD = 0.85;
 const WINDUP_T = 0.11, THRUST_T = 0.16, THRUST_SPEED = 1550, THRUST_CD = 3.5;
 
-interface Pose {
+interface Pose extends Facing {
   anim: string;
   frame: number;
-  flip: boolean;
-  north: boolean;
 }
 
 /** Silhueta em ciano aditivo de um frame: rastros de dash, clones e brilho de i-frames. */
 function silhouette(r: Renderer, x: number, y: number, alpha: number, pose: Pose): void {
-  r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, { flip: pose.flip, north: pose.north, tint: COLOR, alpha, add: true });
+  r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, { flip: pose.flip, dir: pose.dir, tint: COLOR, alpha, add: true });
 }
 
 /** Upgrade "Eco Espectral": clone deixado pelo dash que executa um corte giratório. */
@@ -149,7 +147,7 @@ export class SpectralBlade implements ClassKit {
       w.sfx.play('dash');
       w.particles.burst(p.x, p.y, 10, 8, COLOR, 200, { dir: ang + Math.PI, cone: 0.6 });
       const clones = p.up('clone');
-      if (clones) w.actors.push(new BladeClone(p.x, p.y, p, clones, { anim: 'attack', frame: 0, flip: this.dx < 0, north: this.dy < 0 }));
+      if (clones) w.actors.push(new BladeClone(p.x, p.y, p, clones, { anim: 'attack', frame: 0, ...facing(ang) }));
       return;
     }
     if (p.secCd <= 0 && input.consume('secondary')) {
@@ -256,7 +254,7 @@ export class SpectralBlade implements ClassKit {
       anim = 'run';
       frame = Math.floor(p.t * 12) % 6;
     }
-    return { anim, frame, flip: Math.cos(ang) < 0, north: Math.sin(ang) < -0.2 };
+    return { anim, frame, ...facing(ang) };
   }
 
   /** Congela a pose atual para o Ghost (rastro) redesenhar enquanto some. */

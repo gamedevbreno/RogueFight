@@ -1,6 +1,6 @@
 import { rand } from '../../core/math';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS } from '../../render/Sprites';
+import { SHEETS, facing } from '../../render/Sprites';
 import { Projectile } from '../Projectile';
 import type { World } from '../World';
 import { Enemy } from './Enemy';
@@ -69,8 +69,7 @@ export class Shooter extends Enemy {
     const white = this.flash > 0 || (charging && Math.floor(this.wind * 24) % 2 === 1);
 
     r.sprite(SHEETS.shooter, charging ? 'charging' : 'float', charging ? u * 3 : Math.floor(this.clock * 8) % 4, x, y, bob, {
-      flip: Math.cos(this.ang) < 0,
-      north: Math.sin(this.ang) < -0.2,
+      ...facing(this.ang),
       tint: white ? '#ffffff' : undefined,
     });
     // o olho acende enquanto carrega o disparo

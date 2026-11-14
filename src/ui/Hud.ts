@@ -1,5 +1,6 @@
 import { TAU } from '../core/math';
 import { FONT, TOTAL_WAVES } from '../game/config';
+import type { Boss } from '../game/enemies/Boss';
 import type { Player } from '../game/Player';
 import type { Renderer } from '../render/Renderer';
 
@@ -8,6 +9,7 @@ export interface HudData {
   wave: number;
   remaining: number;
   banner: number;
+  boss: Boss | null;
   flash: number;
   time: number;
   mouseX: number;
@@ -84,6 +86,38 @@ export class Hud {
     const mm = Math.floor(d.time / 60), ss = Math.floor(d.time % 60);
     ctx.fillText(`${mm}:${ss.toString().padStart(2, '0')}`, W - 28, 36);
     ctx.fillText('ESC pausa · M som', W - 28, 56);
+
+    // ---- barra de vida do Boss ----
+    if (d.boss) {
+      const b = d.boss;
+      const bwid = Math.min(640, W * 0.58);
+      const bxx = cx - bwid / 2, byy = 96, bhh = 18;
+      const frac = Math.max(0, b.hp / b.maxHp);
+      const pulse = b.enraged ? 0.75 + 0.25 * Math.sin(d.time * 10) : 1;
+      ctx.textAlign = 'center';
+      ctx.font = `900 18px ${FONT}`;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#000';
+      ctx.fillStyle = b.enraged ? '#ffd0a0' : '#ff8a96';
+      const title = b.name.toUpperCase() + (b.enraged ? '  ·  ENFURECIDO' : '');
+      ctx.strokeText(title, cx, byy - 9);
+      ctx.fillText(title, cx, byy - 9);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(bxx - 4, byy - 4, bwid + 8, bhh + 8);
+      ctx.fillStyle = '#2b0812';
+      ctx.fillRect(bxx, byy, bwid, bhh);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = b.enraged ? '#ff6a2e' : '#ff3b4e';
+      ctx.fillRect(bxx, byy, bwid * frac, bhh);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.fillRect(bxx, byy, bwid * frac, 5);
+      ctx.fillStyle = '#000'; // marca da fase 2 (50%)
+      ctx.fillRect(cx - 1.5, byy, 3, bhh);
+      ctx.strokeStyle = b.enraged ? '#ffd0a0' : '#ff8a96';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bxx - 4, byy - 4, bwid + 8, bhh + 8);
+    }
 
     // ---- letreiro da onda ----
     if (d.banner > 0) {

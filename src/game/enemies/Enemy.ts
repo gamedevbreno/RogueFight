@@ -2,7 +2,7 @@ import type { Renderer } from '../../render/Renderer';
 import { ELEMENTS } from '../config';
 import type { World } from '../World';
 
-export type EnemyKind = 'chaser' | 'shooter' | 'tank';
+export type EnemyKind = 'chaser' | 'shooter' | 'tank' | 'bomber' | 'boss';
 
 export interface EnemyCfg {
   hp: number;
@@ -39,6 +39,8 @@ export abstract class Enemy {
   readonly color: string;
   readonly knockMul: number;
   readonly height: number;
+  /** Barra de vida sobre a cabeça (o Boss usa a barra do HUD). */
+  protected showBar = true;
 
   constructor(public x: number, public y: number, c: EnemyCfg) {
     this.px = this.rx = x;
@@ -103,6 +105,9 @@ export abstract class Enemy {
     w.clampArena(this, this.radius);
   }
 
+  /** Chamado uma vez quando o inimigo morre (efeitos especiais de morte). */
+  onDeath(_w: World): void {}
+
   protected abstract ai(dt: number, w: World, slow: number): void;
   protected abstract drawBody(r: Renderer): void;
 
@@ -139,7 +144,7 @@ export abstract class Enemy {
     this.drawBody(r);
 
     const top = this.rz + this.height + 12;
-    if (this.hp < this.maxHp) {
+    if (this.showBar && this.hp < this.maxHp) {
       const w = this.radius * 2;
       const sx = r.X(x) - w / 2, sy = r.Y(y, top);
       ctx.fillStyle = '#000';

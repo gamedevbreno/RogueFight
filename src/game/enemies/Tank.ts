@@ -1,7 +1,7 @@
 import { clamp, lerp } from '../../core/math';
 import { Ring } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS } from '../../render/Sprites';
+import { SHEETS, facing } from '../../render/Sprites';
 import type { World } from '../World';
 import { Enemy } from './Enemy';
 
@@ -95,8 +95,7 @@ export class Tank extends Enemy {
       frame = (1 - this.t / RECOVER_T) * 3;
     }
     r.sprite(SHEETS.tank, anim, frame, this.rx, this.ry, this.rz, {
-      flip: Math.cos(this.ang) < 0,
-      north: Math.sin(this.ang) < -0.2,
+      ...facing(this.ang),
       tint: this.flash > 0 ? '#ffffff' : undefined,
     });
   }

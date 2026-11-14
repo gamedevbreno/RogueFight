@@ -6,7 +6,7 @@ export const VIEW_H = 780;
 export const FIXED_DT = 1 / 60;
 /** Arena centrada na origem. */
 export const ARENA = { w: 1800, h: 1300 };
-export const TOTAL_WAVES = 5;
+export const TOTAL_WAVES = 10;
 
 export const ELEMENTS = [
   { name: 'Brasa', color: '#ff7a3c' },

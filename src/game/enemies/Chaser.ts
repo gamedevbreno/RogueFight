@@ -1,6 +1,6 @@
 import { rand } from '../../core/math';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS } from '../../render/Sprites';
+import { SHEETS, facing } from '../../render/Sprites';
 import type { World } from '../World';
 import { Enemy } from './Enemy';
 
@@ -86,8 +86,7 @@ export class Chaser extends Enemy {
     // flash branco: ao levar dano e piscando durante o telegraph do bote
     const white = this.flash > 0 || (wind && Math.floor(this.t * 20) % 2 === 1);
     r.sprite(SHEETS.chaser, anim, frame, this.rx + (wind ? rand(-1.5, 1.5) : 0), this.ry, 0, {
-      flip: Math.cos(this.ang) < 0,
-      north: Math.sin(this.ang) < -0.2,
+      ...facing(this.ang),
       tint: white ? '#ffffff' : undefined,
     });
   }

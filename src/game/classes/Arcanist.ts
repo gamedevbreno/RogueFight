@@ -2,7 +2,7 @@ import type { Input } from '../../core/Input';
 import { TAU } from '../../core/math';
 import { Bolt, Ghost, Ring, Streak } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS } from '../../render/Sprites';
+import { SHEETS, facing, type Facing } from '../../render/Sprites';
 import { ELEMENTS } from '../config';
 import type { Enemy } from '../enemies/Enemy';
 import type { Player } from '../Player';
@@ -16,8 +16,8 @@ const BLINK_DIST = 240, BLINK_CD = 2.0, PULSE_R = 150;
 const BLAST_R = 125, BLAST_CD = 5, BLAST_RANGE = 540;
 
 /** Silhueta lilás aditiva (rastro do Blink e brilho de i-frames). */
-function silhouette(r: Renderer, x: number, y: number, alpha: number, flip = false, north = false): void {
-  r.sprite(SHEETS.mage, 'idle', 0, x, y, 0, { flip, north, tint: COLOR, alpha, add: true });
+function silhouette(r: Renderer, x: number, y: number, alpha: number, f: Facing): void {
+  r.sprite(SHEETS.mage, 'idle', 0, x, y, 0, { ...f, tint: COLOR, alpha, add: true });
 }
 
 interface BlastOpts {
@@ -185,8 +185,8 @@ export class Arcanist implements ClassKit {
     p.iframes = Math.max(p.iframes, 0.3);
     p.dashCd = p.dashCdMax = BLINK_CD * p.stats.dashCd;
 
-    const flip = Math.cos(ang) < 0, north = Math.sin(ang) < -0.2;
-    w.fx.push(new Ghost(ox, oy, (r, x, y, a) => silhouette(r, x, y, a, flip, north), 0.4));
+    const f = facing(ang);
+    w.fx.push(new Ghost(ox, oy, (r, x, y, a) => silhouette(r, x, y, a, f), 0.4));
     w.fx.push(new Streak(ox, oy, p.x, p.y, 26, COLOR, 0.25, 6));
     w.particles.burst(ox, oy, 26, 14, COLOR, 220);
     // pulso de repulsão na chegada
@@ -221,8 +221,7 @@ export class Arcanist implements ClassKit {
 
   draw(r: Renderer, p: Player): void {
     const x = p.rx, y = p.ry;
-    const flip = Math.cos(p.aim) < 0;
-    const north = Math.sin(p.aim) < -0.2;
+    const f = facing(p.aim);
     let anim = 'idle';
     let frame = Math.floor(p.t * 6) % 4;
     if (this.castT > 0) {
@@ -245,9 +244,9 @@ export class Arcanist implements ClassKit {
       r.disc(o.ox, o.oy, o.z, big ? 5 : 3.2, ELEMENTS[o.i].color);
     };
     for (const o of orbs) if (o.oy < y) drawOrb(o);
-    r.sprite(SHEETS.mage, anim, frame, x, y, 0, { flip, north });
+    r.sprite(SHEETS.mage, anim, frame, x, y, 0, f);
     for (const o of orbs) if (o.oy >= y) drawOrb(o);
-    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5, flip, north);
+    if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, 0.5, f);
   }
 }
 

@@ -7,6 +7,7 @@ import { Screens } from '../ui/Screens';
 import type { ClassDef } from './classes/ClassKit';
 import { CLASSES } from './classes';
 import { FIXED_DT, TOTAL_WAVES } from './config';
+import { Boss } from './enemies/Boss';
 import { Player } from './Player';
 import { UPGRADES, rollUpgrades, takeUpgrade } from './upgrades';
 import { WaveManager } from './WaveManager';
@@ -181,6 +182,7 @@ export class Game {
         wave: this.waves.wave,
         remaining: this.waves.remaining(w),
         banner: this.waves.banner,
+        boss: w.enemies.find((e): e is Boss => e instanceof Boss) ?? null,
         flash: w.damageFlash,
         time: this.runTime,
         mouseX: this.input.mouseX / r.scale,

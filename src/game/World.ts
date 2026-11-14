@@ -12,6 +12,8 @@ export interface Actor {
   x: number;
   y: number;
   dead: boolean;
+  /** Perigo pendente no chão (ex.: bomba instável): a onda não termina enquanto existir. */
+  hazard?: boolean;
   update(dt: number, w: World): void;
   interp(alpha: number): void;
   drawGround(r: Renderer): void;
@@ -150,6 +152,7 @@ export class World {
       this.sfx.play('kill');
       this.shake(0.16);
       this.player.onKill();
+      e.onDeath(this);
       return true;
     }
     return false;

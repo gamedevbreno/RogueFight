@@ -4,7 +4,7 @@ import { SHEETS, type Sheet } from './Sprites';
 
 export interface SpriteOpts {
   flip?: boolean; // espelha no eixo X (personagem olhando para a esquerda)
-  north?: boolean; // usa as linhas da vista de costas
+  dir?: number; // grupo de direção 0..4 (use facing(ang) de Sprites.ts)
   tint?: string; // desenha a silhueta em cor sólida (flash branco, rastros)
   alpha?: number;
   add?: boolean; // mistura aditiva (brilho)
@@ -165,7 +165,7 @@ export class Renderer {
     const d = s.def;
     const a = d.anims[anim];
     const f = Math.max(0, Math.min(a.frames - 1, Math.floor(frame)));
-    const row = a.row + (o.north ? s.rows : 0);
+    const row = a.row + (o.dir ?? 0) * s.rows;
     const k = d.scale * (o.scale ?? 1);
     const ctx = this.ctx;
     ctx.save();
@@ -173,7 +173,8 @@ export class Renderer {
     ctx.scale(o.flip ? -k : k, k);
     if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
     if (o.add) ctx.globalCompositeOperation = 'lighter';
-    ctx.drawImage(o.tint ? s.mask(o.tint) : s.img, f * d.cw, row * d.ch, d.cw, d.ch, -d.ax, -d.ay, d.cw, d.ch);
+    if (o.tint) ctx.drawImage(s.mask(o.tint, f * d.cw, row * d.ch), -d.ax, -d.ay);
+    else ctx.drawImage(s.img, f * d.cw, row * d.ch, d.cw, d.ch, -d.ax, -d.ay, d.cw, d.ch);
     ctx.restore();
   }
 

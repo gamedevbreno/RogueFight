@@ -1,7 +1,7 @@
 export type SfxName =
   | 'slash' | 'slashHeavy' | 'thrust' | 'dash' | 'blink' | 'orb' | 'cast'
   | 'hit' | 'crit' | 'kill' | 'hurt' | 'detonate' | 'blast' | 'zap'
-  | 'charge' | 'slam' | 'shoot' | 'spawn'
+  | 'charge' | 'slam' | 'shoot' | 'spawn' | 'roar'
   | 'hover' | 'pick' | 'waveStart' | 'waveClear' | 'victory' | 'defeat';
 
 /** Sintetizador procedural de efeitos (Web Audio API, zero arquivos). */
@@ -143,6 +143,11 @@ export class Sfx {
         break;
       case 'shoot':
         this.tone('square', 640 * j, 280, 0.11, 0.1);
+        break;
+      case 'roar':
+        this.tone('sawtooth', 220, 48, 0.9, 0.4);
+        this.tone('square', 110, 36, 0.9, 0.25);
+        this.noise(1800, 120, 0.8, 0.45, 'bandpass');
         break;
       case 'spawn':
         this.tone('sine', 280 * j, 620, 0.16, 0.07);
