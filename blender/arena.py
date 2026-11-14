@@ -19,18 +19,34 @@ def stone(name, top, side, shadow):
     return rf.toon(name, top, side, rf.mix(top, "#ffffff", 0.12), t1=0.3, t2=0.75)
 
 
+# THEME é definido por arena_fire.py antes de executar este arquivo; o padrão é a arena arcana.
+THEME = globals().get("THEME", "arcane")
+PREFIX = "arena_fire_" if THEME == "fire" else "arena_"
+PAL = {
+    "arcane": dict(
+        a=("#2c2356", "#191236", "#0c081c"), b=("#251d49", "#150f2e", "#0a0718"), c=("#34296a", "#1d1540", "#0e0922"),
+        cap=("#4a3a9a", "#2c2068", "#150e33"), grout="#08050f", rune="#7a5cff", runeDim="#4a3aa8",
+        floorRune="#3b2d86", floorRune2="#2c2266", crack="#08050f", crystal=("#9d7bff", "#5a3ad6", "#e6dcff"),
+    ),
+    # Cratera vulcânica: basalto escuro, rachaduras de magma, runas e cristais em brasa
+    "fire": dict(
+        a=("#322a2c", "#1a1416", "#0a0708"), b=("#2a2224", "#151012", "#080607"), c=("#3c3032", "#1e1719", "#0c090a"),
+        cap=("#6a4034", "#3a221c", "#190f0c"), grout="#070405", rune="#ff6a14", runeDim="#b8400c",
+        floorRune="#b0380c", floorRune2="#6e2408", crack="#7a280a", crystal=("#ff8a2a", "#c2410c", "#ffe08a"),
+    ),
+}[THEME]
+
+
 def mats():
     return dict(
-        a=stone("sa", "#2c2356", "#191236", "#0c081c"),
-        b=stone("sb", "#251d49", "#150f2e", "#0a0718"),
-        c=stone("sc", "#34296a", "#1d1540", "#0e0922"),
-        cap=stone("cap", "#4a3a9a", "#2c2068", "#150e33"),
-        grout=rf.glow("grout", "#08050f"),
-        rune=rf.glow("rune", "#7a5cff"),
-        floorRune=rf.glow("floorRune", "#3b2d86"),
-        floorRune2=rf.glow("floorRune2", "#2c2266"),
-        runeDim=rf.glow("runeDim", "#4a3aa8"),
-        crystal=rf.toon("crystal", "#9d7bff", "#5a3ad6", "#e6dcff"),
+        a=stone("sa", *PAL["a"]), b=stone("sb", *PAL["b"]), c=stone("sc", *PAL["c"]), cap=stone("cap", *PAL["cap"]),
+        grout=rf.glow("grout", PAL["grout"]),
+        rune=rf.glow("rune", PAL["rune"]),
+        runeDim=rf.glow("runeDim", PAL["runeDim"]),
+        floorRune=rf.glow("floorRune", PAL["floorRune"]),
+        floorRune2=rf.glow("floorRune2", PAL["floorRune2"]),
+        crack=rf.glow("crack", PAL["crack"]),
+        crystal=rf.toon("crystal", *PAL["crystal"]),
     )
 
 
@@ -49,10 +65,11 @@ for row in range(4):
         if t in "ACR":
             m = M["a" if t == "A" else "c"]
             rf.mk(f"s{k}", B().box((cx, cy, 0.03), (1.88, 1.88, 0.06)), m, outline=0, smooth=False, bevel=0.035)
-            if t == "A" and (row + col) % 2 == 0:   # rachaduras
-                rf.mk(f"cr{k}", B().box((cx - 0.3, cy + 0.2, 0.062), (0.9, 0.035, 0.01), rot=("Z", 28))
-                      .box((cx + 0.15, cy + 0.1, 0.062), (0.5, 0.03, 0.01), rot=("Z", -40)), M["grout"], outline=0)
-            if t == "R":                             # círculo rúnico gravado
+            if (t == "A" and (row + col) % 2 == 0) or THEME == "fire":   # rachaduras
+                ca = 28 + 53 * k          # cada laje racha num ângulo diferente
+                rf.mk(f"cr{k}", B().box((cx - 0.25 + 0.1 * (k % 3), cy + 0.15 - 0.1 * (k % 2), 0.062), (0.95, 0.04, 0.01), rot=("Z", ca))
+                      .box((cx + 0.2 - 0.12 * (k % 2), cy - 0.05 + 0.1 * (k % 3), 0.062), (0.5, 0.032, 0.01), rot=("Z", ca - 68)), M["crack"], outline=0)
+            if t == "R" and THEME != "fire":         # círculo rúnico gravado (na cratera pareceria um telegraph)
                 rf.mk("ring", B().torus(0.62, 0.035, seg=40, c=(cx, cy, 0.062)), M["floorRune"], outline=0)
                 rf.mk("ring2", B().torus(0.36, 0.022, seg=32, c=(cx, cy, 0.062)), M["floorRune2"], outline=0)
                 g = B().box((cx, cy, 0.062), (0.2, 0.2, 0.02), rot=("Z", 45))
@@ -67,7 +84,7 @@ for row in range(4):
             for i, dy in enumerate((0.5, -0.5)):
                 rf.mk(f"s{k}{i}", B().box((cx, cy + dy, 0.025 + 0.015 * i), (1.88, 0.88, 0.05 + 0.03 * i)),
                       M[order[(i + k) % 3]], outline=0, smooth=False, bevel=0.03)
-rf.still(rf.OUT + "/arena_tile.png", 800, 528, 8.0)
+rf.still(rf.OUT + "/" + PREFIX + "tile.png", 800, 528, 8.0)
 
 # =============================================================== PAREDE NORTE + BORDA SUL
 def wall_blocks(y_front, rows, mats_, depth=0.07):
@@ -121,8 +138,8 @@ n = rf._load(rf.TMP + "/wall_n.png"); s = rf._load(rf.TMP + "/wall_s.png")
 big = np.zeros((288, 400, 4), dtype=np.float32)
 big[128:288] = n          # linha 0 do Blender é a de baixo: norte fica no topo da imagem
 big[0:128] = s
-rf._save(big, rf.OUT + "/arena_wall.png")
-print("OK arena_wall.png 400x288 (norte y=0..160, sul y=160..288)")
+rf._save(big, rf.OUT + "/" + PREFIX + "wall.png")
+print("OK", PREFIX + "wall.png 400x288 (norte y=0..160, sul y=160..288)")
 
 # =============================================================== PILAR RÚNICO
 rf.reset()
@@ -140,5 +157,5 @@ for z in (1.25, 1.85):
 rf.mk("glyph", gl, M["rune"], outline=0, smooth=False)
 rf.mk("capital", B().box((0, 0, 2.6), (0.92, 0.92, 0.2), rot=("Z", 45)), M["cap"], smooth=False, bevel=0.04)
 rf.mk("crystal", B().cone((0, 0, 3.12), (0, 0, 3.62), 0.2, 0, seg=4).cone((0, 0, 3.12), (0, 0, 2.84), 0.2, 0, seg=4), M["crystal"], smooth=False)
-rf.still(rf.OUT + "/arena_pillar.png", 256, 384, 4.8, tz=1.55)
+rf.still(rf.OUT + "/" + PREFIX + "pillar.png", 256, 384, 4.8, tz=1.55)
 print("pillar anchor:", 128, 192 + 1.55 * rf.SIN * 80)

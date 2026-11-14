@@ -1,25 +1,40 @@
 import { rand } from '../../core/math';
 import type { Renderer } from '../../render/Renderer';
-import { SHEETS, facing } from '../../render/Sprites';
+import { SHEETS, facing, type Sheet } from '../../render/Sprites';
 import { Projectile } from '../Projectile';
 import type { World } from '../World';
-import { Enemy } from './Enemy';
+import { Enemy, type EnemyCfg } from './Enemy';
 
 const COLOR = '#ffb02e';
 const WIND_T = 0.5;
 
-/** Atirador: mantém distância, orbita o jogador e dispara projéteis que voam em Z. */
+/**
+ * Atirador: mantém distância, orbita o jogador e dispara projéteis que voam em Z.
+ * `shoot` e os campos protegidos permitem variantes (ver Pyromancer).
+ */
 export class Shooter extends Enemy {
+  protected sheet: Sheet = SHEETS.shooter;
+  protected glowColor = '#fff2c0';
+  protected ang = 0;
+
   private wind = 0;
   private shootT = rand(1, 2.2);
   private side = Math.random() < 0.5 ? 1 : -1;
   private flipT = rand(2, 4);
-  private ang = 0;
   private readonly seed = rand(10);
   private clock = 0;
 
-  constructor(x: number, y: number, hpScale: number) {
-    super(x, y, { hp: 22 * hpScale, radius: 15, speed: 115, color: COLOR, knockMul: 1, height: 72 });
+  constructor(x: number, y: number, hpScale: number, cfg?: EnemyCfg) {
+    super(x, y, cfg ?? { hp: 22 * hpScale, radius: 15, speed: 115, color: COLOR, knockMul: 1, height: 72 });
+  }
+
+  /** Dispara o projétil. `d` é a distância até o jogador no momento do tiro. */
+  protected shoot(w: World, _d: number): void {
+    w.actors.push(new Projectile({
+      x: this.x + Math.cos(this.ang) * 18, y: this.y + Math.sin(this.ang) * 18, z: 30,
+      ang: this.ang, speed: 340, radius: 9, life: 3.2,
+      color: COLOR, kind: 'bolt', friendly: false, damage: 9,
+    }));
   }
 
   protected ai(dt: number, w: World, slow: number): void {
@@ -32,11 +47,7 @@ export class Shooter extends Enemy {
     if (this.wind > 0) {
       this.wind -= dt;
       if (this.wind <= 0) {
-        w.actors.push(new Projectile({
-          x: this.x + Math.cos(this.ang) * 18, y: this.y + Math.sin(this.ang) * 18, z: 30,
-          ang: this.ang, speed: 340, radius: 9, life: 3.2,
-          color: COLOR, kind: 'bolt', friendly: false, damage: 9,
-        }));
+        this.shoot(w, d);
         w.sfx.play('shoot');
         this.shootT = rand(1.8, 2.6);
       }
@@ -68,11 +79,11 @@ export class Shooter extends Enemy {
     const u = charging ? 1 - this.wind / WIND_T : 0;
     const white = this.flash > 0 || (charging && Math.floor(this.wind * 24) % 2 === 1);
 
-    r.sprite(SHEETS.shooter, charging ? 'charging' : 'float', charging ? u * 3 : Math.floor(this.clock * 8) % 4, x, y, bob, {
+    r.sprite(this.sheet, charging ? 'charging' : 'float', charging ? u * 3 : Math.floor(this.clock * 8) % 4, x, y, bob, {
       ...facing(this.ang),
       tint: white ? '#ffffff' : undefined,
     });
-    // o olho acende enquanto carrega o disparo
-    if (charging) r.glow(x + Math.cos(this.ang) * 12, y + Math.sin(this.ang) * 12, 36 + bob, 8 + 16 * u, '#fff2c0', 0.6);
+    // brilho crescente enquanto carrega o disparo
+    if (charging) r.glow(x + Math.cos(this.ang) * 12, y + Math.sin(this.ang) * 12, 36 + bob, 8 + 16 * u, this.glowColor, 0.6);
   }
 }

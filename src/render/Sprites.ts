@@ -127,6 +127,22 @@ export const SHEETS = {
     file: 'enemy_bomber.png', cw: 256, ch: 256, ax: 128, ay: 169.2, scale: 0.55,
     anims: { walk: { row: 0, frames: 4 }, throw: { row: 1, frames: 3 } },
   }),
+  hellhound: new Sheet({
+    file: 'enemy_hellhound.png', cw: 256, ch: 256, ax: 128, ay: 147.7, scale: 0.76,
+    anims: { chase: { row: 0, frames: 4 }, windup: { row: 1, frames: 2 }, lunge: { row: 2, frames: 2 } },
+  }),
+  pyromancer: new Sheet({
+    file: 'enemy_pyromancer.png', cw: 256, ch: 256, ax: 128, ay: 204.9, scale: 0.72,
+    anims: { float: { row: 0, frames: 4 }, charging: { row: 1, frames: 3 } },
+  }),
+  brute: new Sheet({
+    file: 'enemy_brute.png', cw: 320, ch: 320, ax: 160, ay: 220.1, scale: 0.72,
+    anims: { walk: { row: 0, frames: 4 }, pound: { row: 1, frames: 3 } },
+  }),
+  fireboss: new Sheet({
+    file: 'enemy_fireboss.png', cw: 384, ch: 384, ax: 192, ay: 272.6, scale: 0.95,
+    anims: { walk: { row: 0, frames: 4 }, wave: { row: 1, frames: 3 }, cast: { row: 2, frames: 3 } },
+  }),
   boss: new Sheet({
     file: 'enemy_boss.png', cw: 384, ch: 384, ax: 192, ay: 262.3, scale: 1.15,
     anims: { walk: { row: 0, frames: 4 }, slash: { row: 1, frames: 4 }, cast: { row: 2, frames: 3 }, slam: { row: 3, frames: 4 } },
@@ -138,6 +154,10 @@ export const SHEETS = {
   /** Parede norte em y=0..160 e borda sul em y=160..288; ambas repetem a cada 200 unidades. */
   wall: still('arena_wall.png', 400, 288),
   pillar: still('arena_pillar.png', 256, 384, 128, 285.2, 0.625),
+  /** Arena da Fase 2 (cratera vulcânica): mesmas medidas da arena arcana. */
+  fireTile: still('arena_fire_tile.png', 800, 528),
+  fireWall: still('arena_fire_wall.png', 400, 288),
+  firePillar: still('arena_fire_pillar.png', 256, 384, 128, 285.2, 0.625),
 };
 
 export function loadSprites(): Promise<void> {

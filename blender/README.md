@@ -15,6 +15,15 @@ modelo do zero (malhas, materiais toon, juntas e poses) e renderiza a spriteshee
 | `bomber.py` | `enemy_bomber.png` (walk, throw) |
 | `boss.py` | `enemy_boss.png` (walk, slash, cast, slam) |
 | `arena.py` | `arena_tile.png`, `arena_wall.png`, `arena_pillar.png` |
+| **Fase 2 — Cratera Vulcânica** | |
+| `hellhound.py` | `enemy_hellhound.png` — Salamandra Ígnea (chase, windup, lunge) |
+| `pyromancer.py` | `enemy_pyromancer.png` — Piromante Cinzento (float, charging) |
+| `brute.py` | `enemy_brute.png` — Golem de Magma (walk, pound) |
+| `fireboss.py` | `enemy_fireboss.png` — Senhor das Cinzas (walk, wave, cast) |
+| `arena_fire.py` | `arena_fire_tile.png`, `arena_fire_wall.png`, `arena_fire_pillar.png` |
+
+`arena_fire.py` só define `THEME = "fire"` e executa `arena.py`: a geometria é a mesma e a
+paleta vem do dicionário `PAL` (basalto, rachaduras de magma, cristais em brasa).
 
 `rf.py` é a biblioteca compartilhada: cena EEVEE com fundo transparente, câmera
 ortográfica a 48,7° (cos = 0,66 = `TILT` do jogo), material toon

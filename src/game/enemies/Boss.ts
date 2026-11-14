@@ -3,7 +3,8 @@ import { Ring, SlashArc } from '../../fx/Fx';
 import type { Renderer } from '../../render/Renderer';
 import { SHEETS, facing } from '../../render/Sprites';
 import { Projectile } from '../Projectile';
-import type { Actor, World } from '../World';
+import { Shockwave } from '../Shockwave';
+import type { World } from '../World';
 import { Chaser } from './Chaser';
 import { Enemy } from './Enemy';
 
@@ -24,48 +25,12 @@ type State = 'idle' | 'slash' | 'barrage' | 'slam' | 'summon' | 'roar';
 /** Rotação de ataques; a escolha ainda é ajustada pela distância e pelo número de lacaios. */
 const PATTERN: State[] = ['barrage', 'slam', 'slash', 'summon', 'slam', 'barrage', 'slash'];
 
-/** Onda de choque do salto: um anel que se expande pelo chão. Atravessável com i-frames. */
-class Shockwave implements Actor {
-  dead = false;
-  private hit = false;
-  constructor(public x: number, public y: number, private r: number, private delay: number) {}
-
-  update(dt: number, w: World): void {
-    if (this.delay > 0) {
-      this.delay -= dt;
-      return;
-    }
-    this.r += 400 * dt;
-    if (this.r > 640) this.dead = true;
-    const p = w.player;
-    if (this.hit || p.dead) return;
-    const d = Math.hypot(p.x - this.x, p.y - this.y);
-    if (Math.abs(d - this.r) < 18 + p.radius * 0.5 && w.damagePlayer(14)) this.hit = true;
-  }
-
-  interp(): void {}
-
-  drawGround(r: Renderer): void {
-    if (this.delay > 0) return;
-    const ctx = r.ctx;
-    ctx.globalAlpha = clamp((640 - this.r) / 200, 0, 1);
-    r.ellipse(this.x, this.y, 0, this.r, null, COLOR, 7);
-    r.ellipse(this.x, this.y, 0, this.r - 9, null, '#ffd0a0', 2);
-    ctx.globalAlpha = 1;
-  }
-
-  draw(): void {}
-}
-
 /**
  * Arconte Abissal — Boss da onda final.
  * Três ataques telegrafados (golpe de glaive, rajada em espiral, salto com onda de choque)
  * mais a invocação de perseguidores. Com 50% de vida enfurece: tudo fica mais rápido e intenso.
  */
 export class Boss extends Enemy {
-  readonly name = 'Arconte Abissal';
-  enraged = false;
-
   private state: State = 'idle';
   private t = 0;
   private cd = 1.4;
@@ -90,6 +55,8 @@ export class Boss extends Enemy {
   constructor(x: number, y: number) {
     super(x, y, { hp: HP, radius: 46, speed: 88, color: COLOR, knockMul: 0, height: 150 });
     this.showBar = false;
+    this.stunMul = 0.3;
+    this.bossName = 'Arconte Abissal';
   }
 
   /** Multiplicador de ritmo: a fase 2 acelera movimento, telegraphs e recargas. */

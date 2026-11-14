@@ -26,6 +26,8 @@ export class Renderer {
   camY = 0;
   shakeX = 0;
   shakeY = 0;
+  /** Tema da arena: 0 = Ruínas Arcanas, 1 = Cratera Vulcânica. */
+  theme = 0;
   private dpr = 1;
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -214,7 +216,7 @@ export class Renderer {
     const y1 = this.Y(hh);
 
     // piso: tile de 400x400 unidades, recortado no retângulo da arena
-    const tile = SHEETS.tile;
+    const tile = this.theme ? SHEETS.fireTile : SHEETS.tile;
     if (tile.ready) {
       const TW = 400;
       const TH = 400 * TILT;
@@ -237,12 +239,12 @@ export class Renderer {
     }
 
     // laterais: a câmera vê essas paredes de perfil, então viram frisos
-    ctx.fillStyle = '#150e33';
+    ctx.fillStyle = this.theme ? '#1c1210' : '#150e33';
     ctx.fillRect(x0 - 14, y0, 14, y1 - y0);
     ctx.fillRect(x1, y0, 14, y1 - y0);
 
     // parede norte (repete a cada 200 unidades)
-    const wall = SHEETS.wall;
+    const wall = this.theme ? SHEETS.fireWall : SHEETS.wall;
     if (wall.ready) {
       for (let i = 0; i * 200 < ARENA.w; i++) {
         ctx.drawImage(wall.img, 0, 0, 400, 160, x0 + i * 200, y0 - 78, 200.5, 80);
@@ -252,7 +254,7 @@ export class Renderer {
       ctx.fillRect(x0, y0 - 80, x1 - x0, 80);
     }
 
-    ctx.strokeStyle = 'rgba(122,92,255,0.75)';
+    ctx.strokeStyle = this.theme ? 'rgba(255,110,40,0.75)' : 'rgba(122,92,255,0.75)';
     ctx.lineWidth = 2.5;
     ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
 
@@ -267,7 +269,7 @@ export class Renderer {
     const hh = ARENA.h / 2;
     const x0 = this.X(-hw);
     const y1 = this.Y(hh);
-    const wall = SHEETS.wall;
+    const wall = this.theme ? SHEETS.fireWall : SHEETS.wall;
     if (wall.ready) {
       for (let i = 0; i * 200 < ARENA.w; i++) {
         ctx.drawImage(wall.img, 0, 160, 400, 128, x0 + i * 200, y1 - 8.3, 200.5, 64);
@@ -288,8 +290,8 @@ export class Renderer {
 
   private pillar(x: number, y: number, t: number): void {
     this.shadow(x, y, 44);
-    this.image(SHEETS.pillar, x, y);
+    this.image(this.theme ? SHEETS.firePillar : SHEETS.pillar, x, y);
     // cristal do topo pulsa
-    this.glow(x, y, 124, 13 + 4 * Math.sin(t * 2.2 + x * 0.01), '#9d7bff', 0.4);
+    this.glow(x, y, 124, 13 + 4 * Math.sin(t * 2.2 + x * 0.01), this.theme ? '#ff8a2a' : '#9d7bff', 0.4);
   }
 }

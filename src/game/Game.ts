@@ -6,8 +6,7 @@ import { Hud } from '../ui/Hud';
 import { Screens } from '../ui/Screens';
 import type { ClassDef } from './classes/ClassKit';
 import { CLASSES } from './classes';
-import { FIXED_DT, TOTAL_WAVES } from './config';
-import { Boss } from './enemies/Boss';
+import { FIXED_DT, STAGE_NAMES, STAGE_WAVES, TOTAL_WAVES, stageOf } from './config';
 import { Player } from './Player';
 import { UPGRADES, rollUpgrades, takeUpgrade } from './upgrades';
 import { WaveManager } from './WaveManager';
@@ -52,6 +51,7 @@ export class Game {
   // ---------- fluxo de estados ----------
   private showMenu(): void {
     this.state = 'menu';
+    this.r.theme = 0;
     this.world = null;
     this.screens.classSelect(CLASSES, (def) => this.startRun(def));
   }
@@ -68,7 +68,16 @@ export class Game {
     this.input.reset();
     this.screens.hide();
     this.state = 'playing';
-    this.waves.start(1, this.world);
+    this.beginWave(1);
+  }
+
+  /** Inicia uma onda, trocando a fase (arena, perigos e cartas) quando ela muda. */
+  private beginWave(n: number): void {
+    const w = this.world!;
+    const stage = stageOf(n);
+    w.stage = stage;
+    this.r.theme = stage - 1;
+    this.waves.start(n, w);
   }
 
   private onWaveCleared(n: number): void {
@@ -82,14 +91,19 @@ export class Game {
       return;
     }
     this.sfx.play('waveClear');
-    p.heal(Math.round(p.stats.maxHp * 0.2));
+    // fim de fase: descanso maior e as cartas da próxima fase já entram no sorteio
+    const stageDone = n % STAGE_WAVES === 0;
+    p.heal(Math.round(p.stats.maxHp * (stageDone ? 0.5 : 0.2)));
+    const title = stageDone
+      ? `Fase ${stageOf(n)} concluída · próxima: ${STAGE_NAMES[stageOf(n + 1) - 1]} · +50% de vida`
+      : `Onda ${n} concluída · +20% de vida`;
     this.state = 'upgrade';
-    this.screens.upgrades(n, rollUpgrades(p), p, (u) => {
+    this.screens.upgrades(title, rollUpgrades(p, stageOf(n + 1)), p, (u) => {
       takeUpgrade(p, u);
       this.screens.hide();
       this.input.reset();
       this.state = 'playing';
-      this.waves.start(n + 1, w);
+      this.beginWave(n + 1);
     });
   }
 
@@ -182,7 +196,7 @@ export class Game {
         wave: this.waves.wave,
         remaining: this.waves.remaining(w),
         banner: this.waves.banner,
-        boss: w.enemies.find((e): e is Boss => e instanceof Boss) ?? null,
+        boss: w.enemies.find((e) => e.bossName !== null) ?? null,
         flash: w.damageFlash,
         time: this.runTime,
         mouseX: this.input.mouseX / r.scale,

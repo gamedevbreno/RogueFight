@@ -1,6 +1,6 @@
 import { TAU } from '../core/math';
-import { FONT, TOTAL_WAVES } from '../game/config';
-import type { Boss } from '../game/enemies/Boss';
+import { FONT, STAGE_NAMES, STAGE_WAVES, stageOf, stageWave } from '../game/config';
+import type { Enemy } from '../game/enemies/Enemy';
 import type { Player } from '../game/Player';
 import type { Renderer } from '../render/Renderer';
 
@@ -9,7 +9,7 @@ export interface HudData {
   wave: number;
   remaining: number;
   banner: number;
-  boss: Boss | null;
+  boss: Enemy | null;
   flash: number;
   time: number;
   mouseX: number;
@@ -43,6 +43,12 @@ export class Hud {
     ctx.font = `800 13px ${FONT}`;
     ctx.fillStyle = p.def.color;
     ctx.fillText(p.def.name.toUpperCase(), bx, by - 10);
+    if (p.burning) {
+      // aviso de Queimadura ao lado do nome + moldura em brasa na barra de vida
+      ctx.fillStyle = Math.floor(d.time * 6) % 2 ? '#ffd23a' : '#ff7a3c';
+      ctx.fillText(`♨ QUEIMANDO ${p.burnT.toFixed(1)}s`, bx + bw - 118, by - 10);
+      ctx.fillRect(bx - 5, by - 5, bw + 10, bh + 10);
+    }
     ctx.fillStyle = '#000';
     ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
     ctx.fillStyle = '#2b0d1a';
@@ -72,7 +78,8 @@ export class Hud {
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
-    const wt = `ONDA ${d.wave} / ${TOTAL_WAVES}`;
+    const stage = stageOf(d.wave), sw = stageWave(d.wave);
+    const wt = `FASE ${stage} · ONDA ${sw} / ${STAGE_WAVES}`;
     ctx.strokeText(wt, cx, 36);
     ctx.fillText(wt, cx, 36);
     ctx.font = `700 13px ${FONT}`;
@@ -99,7 +106,7 @@ export class Hud {
       ctx.lineWidth = 4;
       ctx.strokeStyle = '#000';
       ctx.fillStyle = b.enraged ? '#ffd0a0' : '#ff8a96';
-      const title = b.name.toUpperCase() + (b.enraged ? '  ·  ENFURECIDO' : '');
+      const title = (b.bossName ?? '').toUpperCase() + (b.enraged ? '  ·  ENFURECIDO' : '');
       ctx.strokeText(title, cx, byy - 9);
       ctx.fillText(title, cx, byy - 9);
       ctx.fillStyle = '#000';
@@ -127,10 +134,20 @@ export class Hud {
       ctx.font = `900 76px ${FONT}`;
       ctx.lineWidth = 8;
       ctx.strokeStyle = '#000';
-      ctx.fillStyle = d.wave === TOTAL_WAVES ? '#ff3b5c' : '#ffffff';
-      const t = d.wave === TOTAL_WAVES ? 'ONDA FINAL' : `ONDA ${d.wave}`;
+      const bossWave = sw === STAGE_WAVES;
+      ctx.fillStyle = bossWave ? '#ff3b5c' : '#ffffff';
+      const t = bossWave ? 'CHEFE' : `ONDA ${sw}`;
       ctx.strokeText(t, cx, H * 0.3);
       ctx.fillText(t, cx, H * 0.3);
+      if (sw === 1 && stage > 1) {
+        // primeira onda de uma fase nova: anuncia o cenário
+        ctx.font = `800 22px ${FONT}`;
+        ctx.lineWidth = 5;
+        const sub = `FASE ${stage} · ${STAGE_NAMES[stage - 1].toUpperCase()}`;
+        ctx.strokeText(sub, cx, H * 0.3 + 44);
+        ctx.fillStyle = '#ff8a2a';
+        ctx.fillText(sub, cx, H * 0.3 + 44);
+      }
       if (d.wave === 1) {
         ctx.font = `700 16px ${FONT}`;
         ctx.lineWidth = 4;

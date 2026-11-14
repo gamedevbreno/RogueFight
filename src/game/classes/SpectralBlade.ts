@@ -102,7 +102,7 @@ export class SpectralBlade implements ClassKit {
           w.shake(0.55);
         }
         this.thrustHits.add(e);
-        const killed = p.hit(w, e, 40, { dir: this.thrustAng, knock: 320, heavy: true, color: COLOR });
+        const killed = p.hit(w, e, 40, { dir: this.thrustAng, knock: 320, heavy: true, color: COLOR, bleed: true });
         if (killed && p.up('execute')) {
           p.dashCd = 0;
           p.secCd *= 0.5;
@@ -175,7 +175,7 @@ export class SpectralBlade implements ClassKit {
       if (this.comboT > 0 && (this.comboT -= dt) <= 0) this.idx = 0;
       if (input.down.primary || input.consume('primary')) {
         const s = SWINGS[this.idx];
-        this.swingDur = this.swingT = s.dur / p.stats.haste;
+        this.swingDur = this.swingT = s.dur / p.haste;
         this.swingAng = p.aim;
         this.sweep = this.idx % 2 === 0 ? 1 : -1;
         this.hitDone = false;
@@ -204,7 +204,7 @@ export class SpectralBlade implements ClassKit {
       if (d > range + e.radius) continue;
       const to = Math.atan2(dy, dx);
       if (d > e.radius + 12 && Math.abs(angleDiff(ang, to)) > half) continue;
-      p.hit(w, e, s.dmg, { dir: to, knock: s.knock, heavy: s.heavy, color: s.heavy ? '#d8fbff' : undefined });
+      p.hit(w, e, s.dmg, { dir: to, knock: s.knock, heavy: s.heavy, color: s.heavy ? '#d8fbff' : undefined, bleed: true });
       hitAny = true;
     }
     if (hitAny) {

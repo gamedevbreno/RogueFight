@@ -78,7 +78,7 @@ export class Screens {
     this.bindCards((i) => onPick(defs[i]), 0);
   }
 
-  upgrades(wave: number, list: Upgrade[], p: Player, onPick: (u: Upgrade) => void): void {
+  upgrades(title: string, list: Upgrade[], p: Player, onPick: (u: Upgrade) => void): void {
     const cards = list.map((u, i) => {
       const lvl = p.up(u.id);
       const color = u.cls ? p.def.color : '#ffe14a';
@@ -94,7 +94,7 @@ export class Screens {
     }).join('');
     this.show(`
       <div class="panel">
-        <p class="sub ok">Onda ${wave} concluída · +20% de vida</p>
+        <p class="sub ok">${title}</p>
         <h1 class="heading">Escolha um aprimoramento</h1>
         <div class="cards">${cards}</div>
         <p class="hint">Clique ou pressione 1 · 2 · 3</p>

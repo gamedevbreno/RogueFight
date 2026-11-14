@@ -94,7 +94,7 @@ export class Arcanist implements ClassKit {
   }
 
   private shoot(p: Player, w: World): void {
-    this.fireT = FIRE_INTERVAL / p.stats.haste;
+    this.fireT = FIRE_INTERVAL / p.haste;
     this.castT = Math.max(this.castT, 0.22);
     const el = this.el;
     this.el = (el + 1) % 3;
@@ -112,7 +112,7 @@ export class Arcanist implements ClassKit {
   }
 
   private orbHit(p: Player, w: World, e: Enemy, pr: Projectile, el: number): boolean {
-    const killed = p.hit(w, e, 9 * 0.8 ** pr.bounces, { dir: pr.ang, knock: 60, color: ELEMENTS[el].color });
+    const killed = p.hit(w, e, 9 * 0.8 ** pr.bounces, { dir: pr.ang, knock: 60, color: ELEMENTS[el].color, shock: true });
     if (!killed) for (let i = 0; i < 1 + p.up('overmark'); i++) e.addMark(el);
 
     // upgrade "Ricochete": salta para o inimigo mais próximo ainda não atingido
@@ -161,7 +161,7 @@ export class Arcanist implements ClassKit {
       w.sfx.play('zap');
     }
 
-    const killed = p.hit(w, e, 9 * n, { color: COLOR, heavy: n >= 4 });
+    const killed = p.hit(w, e, 9 * n, { color: COLOR, heavy: n >= 4, shock: true });
 
     // upgrade "Reação em Cadeia": morte por detonação explode e detona os vizinhos
     const chain = p.up('chain');

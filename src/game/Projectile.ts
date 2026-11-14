@@ -10,6 +10,9 @@ export interface ProjCfg {
   kind: 'orb' | 'wave' | 'bolt';
   friendly: boolean;
   damage?: number; // usado por projéteis inimigos
+  burnChance?: number; // projéteis inimigos de fogo
+  /** Chamado quando o projétil acaba (alcance, parede ou acerto no jogador). */
+  onEnd?: (p: Projectile, w: World) => void;
   /** Projéteis do jogador: lógica de acerto. Retorne true para destruir o projétil. */
   onHit?: (e: Enemy, p: Projectile, w: World) => boolean;
 }
@@ -55,6 +58,7 @@ export class Projectile implements Actor {
     if (this.life <= 0 || out) {
       this.dead = true;
       if (c.kind !== 'wave') w.particles.burst(this.x, this.y, this.z, 5, c.color, 140);
+      c.onEnd?.(this, w);
       return;
     }
 
@@ -72,7 +76,10 @@ export class Projectile implements Actor {
       const p = w.player;
       if (!p.dead && Math.hypot(p.x - this.x, p.y - this.y) < c.radius + p.radius) {
         // se o jogador estiver em i-frames, o projétil atravessa (esquiva perfeita)
-        if (w.damagePlayer(c.damage ?? 1)) this.dead = true;
+        if (w.damagePlayer(c.damage ?? 1, c.burnChance ?? 0)) {
+          this.dead = true;
+          c.onEnd?.(this, w);
+        }
       }
     }
   }

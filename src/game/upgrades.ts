@@ -9,6 +9,7 @@ export interface Upgrade {
   icon: string;
   max: number;
   cls?: ClassId; // ausente = universal
+  minStage?: number; // só aparece a partir desta fase
   /** Efeito imediato em stats. Upgrades de comportamento são lidos pelos kits via player.up(id). */
   apply?: (p: Player) => void;
 }
@@ -46,11 +47,20 @@ export const UPGRADES: Upgrade[] = [
   { id: 'mine', name: 'Eco Instável', desc: 'O Blink deixa uma mina arcana que aplica 2 marcas.', icon: '◉', max: 2, cls: 'mage' },
   { id: 'bigblast', name: 'Supernova', desc: '+25% de raio e dano na explosão.', icon: '✹', max: 3, cls: 'mage' },
   { id: 'overmark', name: 'Saturação', desc: 'Orbes aplicam +1 marca por acerto.', icon: '⁘', max: 1, cls: 'mage' },
+
+  // ---- cartas de efeitos de status (a partir da Fase 2) ----
+  { id: 'ignite', name: 'Toque Ígneo', desc: 'Ataques têm 25% (+15%/nível) de chance de aplicar Queimadura.', icon: '♨', max: 3, minStage: 2 },
+  { id: 'venom', name: 'Peçonha Abissal', desc: 'Ataques têm 30% (+15%/nível) de chance de aplicar Veneno acumulativo (até 5).', icon: '☣', max: 3, minStage: 2 },
+  { id: 'serrated', name: 'Fio Serrilhado', desc: 'Cortes e estocadas têm 35% (+20%/nível) de chance de Sangramento; 3 acúmulos estouram uma Hemorragia.', icon: '⚔', max: 3, cls: 'blade', minStage: 2 },
+  { id: 'neural', name: 'Sobrecarga Neural', desc: 'Orbes e detonações têm 25% (+12%/nível) de chance de Paralisar por 0,9s, seguido de lentidão forte.', icon: '⚡', max: 3, cls: 'mage', minStage: 2 },
+  { id: 'salamander', name: 'Sangue de Salamandra', desc: '−70% de dano de Lava e Queimadura; +25% de velocidade de movimento e ataque enquanto você queima.', icon: '❂', max: 1, minStage: 2 },
+  { id: 'epidemic', name: 'Epidemia', desc: 'Inimigos que morrem sob efeito de status espalham seus efeitos para os inimigos próximos.', icon: '✣', max: 1, minStage: 2 },
+  { id: 'torturer', name: 'Torturador', desc: '+18% de dano para cada efeito negativo diferente ativo no alvo.', icon: '⛓', max: 2, minStage: 2 },
 ];
 
 /** Sorteia n cartas: garante ao menos 1 da classe (sinergia) e completa com o resto do pool. */
-export function rollUpgrades(p: Player, n = 3): Upgrade[] {
-  const ok = UPGRADES.filter((u) => (!u.cls || u.cls === p.def.id) && p.up(u.id) < u.max);
+export function rollUpgrades(p: Player, stage: number, n = 3): Upgrade[] {
+  const ok = UPGRADES.filter((u) => (!u.cls || u.cls === p.def.id) && p.up(u.id) < u.max && (u.minStage ?? 1) <= stage);
   const cls = shuffle(ok.filter((u) => u.cls));
   const picked: Upgrade[] = [];
   if (cls.length) picked.push(cls[0]);
