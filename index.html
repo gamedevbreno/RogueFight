@@ -2,12 +2,27 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#06040c" />
+    <meta name="description" content="Roguelike de ação 2.5D: sobreviva a 20 ondas em duas fases." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RogueFight" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>RogueFight</title>
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="overlay" class="hidden"></div>
+    <!-- aviso exibido só por CSS: celular em modo retrato -->
+    <div id="rotate" aria-hidden="true">
+      <div class="phone"></div>
+      <p>Gire o aparelho</p>
+      <span>RogueFight é jogado na horizontal</span>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

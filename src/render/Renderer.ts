@@ -2,6 +2,10 @@ import { TAU } from '../core/math';
 import { ARENA, TILT, VIEW_H } from '../game/config';
 import { SHEETS, type Sheet } from './Sprites';
 
+/** Abaixo desta altura (px CSS), em aparelhos com toque, a vista lógica encolhe para PHONE_VIEW_H. */
+const PHONE_MAX_H = 600;
+const PHONE_VIEW_H = 560;
+
 export interface SpriteOpts {
   flip?: boolean; // espelha no eixo X (personagem olhando para a esquerda)
   dir?: number; // grupo de direção 0..4 (use facing(ang) de Sprites.ts)
@@ -28,6 +32,8 @@ export class Renderer {
   shakeY = 0;
   /** Tema da arena: 0 = Ruínas Arcanas, 1 = Cratera Vulcânica. */
   theme = 0;
+  /** O jogador está usando toque (informado pelo Game); participa do zoom de celular. */
+  touch = false;
   private dpr = 1;
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -42,7 +48,11 @@ export class Renderer {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = Math.round(cw * this.dpr);
     this.canvas.height = Math.round(ch * this.dpr);
-    this.scale = ch / VIEW_H;
+    // Celular na horizontal: a tela tem ~360-430px de altura. Com a vista lógica cheia (780)
+    // tudo ficaria minúsculo, então a câmera aproxima. No PC (sem toque) nada muda.
+    const phone = (this.touch || navigator.maxTouchPoints > 0) && ch < PHONE_MAX_H;
+    this.h = phone ? PHONE_VIEW_H : VIEW_H;
+    this.scale = ch / this.h;
     this.w = cw / this.scale;
   }
 

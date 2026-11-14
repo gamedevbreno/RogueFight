@@ -28,6 +28,10 @@ export class Sfx {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
+  get isMuted(): boolean {
+    return this.muted;
+  }
+
   toggleMute(): void {
     this.muted = !this.muted;
     if (this.ctx) this.master.gain.value = this.muted ? 0 : 0.5;

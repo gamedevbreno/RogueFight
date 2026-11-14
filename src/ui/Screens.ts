@@ -4,6 +4,12 @@ import { TOTAL_WAVES } from '../game/config';
 import type { Player } from '../game/Player';
 import type { Upgrade } from '../game/upgrades';
 
+/**
+ * Posição vertical (em %) da linha "idle, vista frontal" em cada sheet de herói, para o
+ * retrato das cartas: linha = grupo de direção 2 (Sul) x animações; % = linha / (linhas - 1).
+ */
+const FRONT_ROW = { blade: (8 / 19) * 100, mage: (6 / 14) * 100 };
+
 export interface EndStats {
   cls: string;
   wave: number;
@@ -62,7 +68,7 @@ export class Screens {
     const cards = defs.map((d, i) => `
       <button class="card class-card" style="--c:${d.color}">
         <span class="num">${i + 1}</span>
-        <div class="portrait" style="background-image:url(${import.meta.env.BASE_URL}sprites/player_${d.id}.png)"></div>
+        <div class="portrait" style="background-image:url(${import.meta.env.BASE_URL}sprites/player_${d.id}.png);background-position:0 ${FRONT_ROW[d.id]}%"></div>
         <h2>${d.name}</h2>
         <p class="role">${d.role}</p>
         <ul>${d.abilities.map((a) => `<li><b>${a.key}</b><span>${a.text}</span></li>`).join('')}</ul>
@@ -73,7 +79,8 @@ export class Screens {
         <h1 class="logo">ROGUE<span>FIGHT</span></h1>
         <p class="sub">Escolha sua classe · sobreviva a ${TOTAL_WAVES} ondas</p>
         <div class="cards">${cards}</div>
-        <p class="hint">WASD mover · Mouse mirar · Botão esq. atacar · Espaço dash · Botão dir. (ou E) habilidade</p>
+        <p class="hint desktop-only">WASD mover · Mouse mirar · Botão esq. atacar · Espaço dash · Botão dir. (ou E) habilidade</p>
+        <p class="hint touch-only">Toque para escolher · no jogo: lado esquerdo move, lado direito ataca</p>
       </div>`);
     this.bindCards((i) => onPick(defs[i]), 0);
   }
@@ -102,12 +109,16 @@ export class Screens {
     this.bindCards((i) => onPick(list[i]), 450);
   }
 
-  pause(): void {
+  /** `onResume` (usado no toque) acrescenta um botão de continuar. */
+  pause(onResume?: () => void): void {
     this.show(`
       <div class="panel">
         <h1 class="heading">Pausado</h1>
-        <p class="hint">ESC para continuar · M liga/desliga o som</p>
+        ${onResume
+          ? '<button class="card btn resume" style="--c:#39e6ff">Continuar</button>'
+          : '<p class="hint">ESC para continuar · M liga/desliga o som</p>'}
       </div>`);
+    if (onResume) this.bindCards(() => onResume(), 250);
   }
 
   end(victory: boolean, s: EndStats, onRestart: () => void): void {

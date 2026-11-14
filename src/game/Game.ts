@@ -6,7 +6,9 @@ import { Hud } from '../ui/Hud';
 import { Screens } from '../ui/Screens';
 import type { ClassDef } from './classes/ClassKit';
 import { CLASSES } from './classes';
-import { FIXED_DT, STAGE_NAMES, STAGE_WAVES, TOTAL_WAVES, stageOf } from './config';
+import { clamp } from '../core/math';
+import { FIXED_DT, STAGE_NAMES, STAGE_WAVES, TILT, TOTAL_WAVES, stageOf } from './config';
+import type { Enemy } from './enemies/Enemy';
 import { Player } from './Player';
 import { UPGRADES, rollUpgrades, takeUpgrade } from './upgrades';
 import { WaveManager } from './WaveManager';
@@ -29,6 +31,10 @@ export class Game {
   private trauma = 0; // screen shake baseado em "trauma" (decai sozinho)
   private clock = 0;
   private runTime = 0;
+  // mira no toque: deslocamento em relação ao jogador (persiste quando não há alvo) e alvo travado
+  private aimOffX = 160;
+  private aimOffY = 0;
+  private aimTarget: Enemy | null = null;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLElement) {
     this.r = new Renderer(canvas);
@@ -36,6 +42,11 @@ export class Game {
     this.screens = new Screens(overlay, this.sfx);
     this.waves = new WaveManager((n) => this.onWaveCleared(n));
     this.loop = new Loop(FIXED_DT, (dt) => this.update(dt), (dt, a) => this.render(dt, a));
+
+    // controles por toque: o Input precisa das medidas da tela lógica do HUD
+    this.input.setView(() => ({ scale: this.r.scale, w: this.r.w, h: this.r.h }));
+    this.input.onPause = () => this.togglePause();
+    this.input.onMute = () => this.sfx.toggleMute();
 
     window.addEventListener('pointerdown', () => this.sfx.unlock());
     window.addEventListener('keydown', (e) => {
@@ -125,7 +136,8 @@ export class Game {
     if (this.state === 'playing') {
       this.state = 'paused';
       this.input.reset();
-      this.screens.pause();
+      // no toque não há ESC: a tela de pausa ganha um botão de continuar
+      this.screens.pause(this.input.isTouch ? () => this.togglePause() : undefined);
     } else if (this.state === 'paused') {
       this.state = 'playing';
       this.screens.hide();
@@ -137,9 +149,13 @@ export class Game {
     const w = this.world;
     if (!w || (this.state !== 'playing' && this.state !== 'over')) return;
 
-    const m = this.r.screenToWorld(this.input.mouseX, this.input.mouseY);
-    w.player.aimX = m.x;
-    w.player.aimY = m.y;
+    if (this.input.isTouch) this.touchAim(w);
+    else {
+      const m = this.r.screenToWorld(this.input.mouseX, this.input.mouseY);
+      w.player.aimX = m.x;
+      w.player.aimY = m.y;
+      this.aimTarget = null;
+    }
 
     w.update(dt, this.input);
     this.input.tick(dt);
@@ -155,11 +171,51 @@ export class Game {
     }
   }
 
+  /**
+   * Mira no toque (twin-stick híbrido):
+   *   arrastando o botão de ataque  mira manual na direção e distância do arraste
+   *   só segurando / sem tocar      mira automática no inimigo ativo mais próximo
+   *   sem inimigos                  a direção em que o jogador está andando
+   */
+  private touchAim(w: World): void {
+    const p = w.player;
+    const a = this.input.attack;
+    this.aimTarget = null;
+    if (a.aiming) {
+      // o chão é achatado por TILT na tela: desfaz para obter a direção no mundo
+      const wx = a.dx, wy = a.dy / TILT;
+      const len = Math.hypot(wx, wy) || 1;
+      const dist = clamp(Math.hypot(a.dx, a.dy) * 4.2, 110, 520);
+      this.aimOffX = (wx / len) * dist;
+      this.aimOffY = (wy / len) * dist;
+    } else {
+      const e = w.nearestEnemy(p.x, p.y, 680);
+      if (e) {
+        this.aimOffX = e.x - p.x;
+        this.aimOffY = e.y - p.y;
+        this.aimTarget = e;
+      } else {
+        const ax = this.input.axis();
+        const len = Math.hypot(ax.x, ax.y);
+        if (len > 0.01) {
+          this.aimOffX = (ax.x / len) * 200;
+          this.aimOffY = (ax.y / len) * 200;
+        }
+      }
+    }
+    p.aimX = p.x + this.aimOffX;
+    p.aimY = p.y + this.aimOffY;
+  }
+
   // ---------- render: delta variável + interpolação ----------
   private render(dt: number, alpha: number): void {
     const r = this.r;
     const w = this.world;
     this.clock += dt;
+    if (r.touch !== this.input.isTouch) {
+      r.touch = this.input.isTouch; // entrou/saiu do modo toque: recalcula o zoom da vista
+      r.resize();
+    }
     const simulating = this.state === 'playing' || this.state === 'over';
 
     if (this.state !== 'paused') {
@@ -171,8 +227,10 @@ export class Game {
       w.interp(simulating ? alpha : 1);
       const p = w.player;
       // câmera segue o jogador com leve antecipação na direção da mira
-      const tx = p.rx + (p.aimX - p.rx) * 0.1;
-      const ty = p.ry + (p.aimY - p.ry) * 0.1;
+      // (no toque a mira salta entre inimigos, então a antecipação é quase nula)
+      const look = this.input.isTouch ? 0.03 : 0.1;
+      const tx = p.rx + (p.aimX - p.rx) * look;
+      const ty = p.ry + (p.aimY - p.ry) * look;
       const k = 1 - Math.exp(-7 * dt);
       r.camX += (tx - r.camX) * k;
       r.camY += (ty - r.camY) * k;
@@ -202,6 +260,9 @@ export class Game {
         mouseX: this.input.mouseX / r.scale,
         mouseY: this.input.mouseY / r.scale,
         showCursor: this.state === 'playing',
+        input: this.input,
+        aimTarget: this.aimTarget,
+        muted: this.sfx.isMuted,
       });
     }
   }

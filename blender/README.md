@@ -50,6 +50,15 @@ Depois de renderizar, compacte os PNGs (Python do sistema + Pillow):
 python blender/optimize.py
 ```
 
+## Ícones do PWA
+
+`make_icons.py` não usa o Blender: monta os ícones do app a partir das sheets já
+renderizadas (os dois heróis sobre fundo escuro com borda neon).
+
+```bash
+python blender/make_icons.py   # public/icon-192.png, icon-512.png, apple-touch-icon.png
+```
+
 ## Direções
 
 Cada sheet de personagem tem 5 grupos de direção, um bloco de linhas por grupo

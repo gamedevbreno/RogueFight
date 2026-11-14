@@ -1,3 +1,4 @@
+import { STICK_R, type Input, type TouchButton } from '../core/Input';
 import { TAU } from '../core/math';
 import { FONT, STAGE_NAMES, STAGE_WAVES, stageOf, stageWave } from '../game/config';
 import type { Enemy } from '../game/enemies/Enemy';
@@ -15,6 +16,11 @@ export interface HudData {
   mouseX: number;
   mouseY: number;
   showCursor: boolean;
+  /** Controles por toque: o HUD desenha joystick e botões quando input.isTouch. */
+  input: Input;
+  /** Inimigo travado pela mira automática (só no toque). */
+  aimTarget: Enemy | null;
+  muted: boolean;
 }
 
 /** HUD em espaço de tela, desenhado no mesmo canvas depois do mundo. */
@@ -23,6 +29,7 @@ export class Hud {
     const ctx = r.ctx;
     const p = d.player;
     const W = r.w, H = r.h;
+    const touch = d.input.isTouch;
     const hpFrac = Math.max(0, p.hp / p.stats.maxHp);
 
     // vinheta de dano / vida baixa
@@ -36,8 +43,16 @@ export class Hud {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // ---- vida ----
-    const bx = 28, by = H - 54, bw = 300, bh = 20;
+    // marcador sob o alvo da mira automática (desenhado no mundo, sob o resto do HUD)
+    if (touch && d.aimTarget && !d.aimTarget.dead && d.showCursor) {
+      const e = d.aimTarget;
+      const rad = e.radius * 1.5 + 3 * Math.sin(d.time * 8);
+      r.ellipse(e.rx, e.ry, 0, rad, null, '#000', 5);
+      r.ellipse(e.rx, e.ry, 0, rad, null, p.def.color, 2.5);
+    }
+
+    // ---- vida ---- (no toque sobe para o topo: o canto inferior esquerdo é do joystick)
+    const bx = 28, by = touch ? 40 : H - 54, bw = touch ? 250 : 300, bh = 20;
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     ctx.font = `800 13px ${FONT}`;
@@ -66,11 +81,13 @@ export class Hud {
     ctx.strokeText(hpText, bx + bw / 2, by + 15);
     ctx.fillText(hpText, bx + bw / 2, by + 15);
 
-    // ---- habilidades ----
+    // ---- habilidades ---- (no toque viram os botões circulares da direita)
     const size = 58;
     const cx = W / 2;
-    this.ability(r, cx - size - 8, H - size - 26, size, p.def.dashName, 'ESPAÇO', p.dashCd, p.dashCdMax, p.def.color);
-    this.ability(r, cx + 8, H - size - 26, size, p.def.secName, 'BOTÃO DIR.', p.secCd, p.secCdMax, p.def.color);
+    if (!touch) {
+      this.ability(r, cx - size - 8, H - size - 26, size, p.def.dashName, 'ESPAÇO', p.dashCd, p.dashCdMax, p.def.color);
+      this.ability(r, cx + 8, H - size - 26, size, p.def.secName, 'BOTÃO DIR.', p.secCd, p.secCdMax, p.def.color);
+    }
 
     // ---- onda ----
     ctx.textAlign = 'center';
@@ -91,8 +108,12 @@ export class Hud {
     ctx.font = `700 14px ${FONT}`;
     ctx.fillStyle = '#8f84b8';
     const mm = Math.floor(d.time / 60), ss = Math.floor(d.time % 60);
-    ctx.fillText(`${mm}:${ss.toString().padStart(2, '0')}`, W - 28, 36);
-    ctx.fillText('ESC pausa · M som', W - 28, 56);
+    const clock = `${mm}:${ss.toString().padStart(2, '0')}`;
+    if (touch) ctx.fillText(clock, W - 166, 52); // à esquerda dos botões de pausa e som
+    else {
+      ctx.fillText(clock, W - 28, 36);
+      ctx.fillText('ESC pausa · M som', W - 28, 56);
+    }
 
     // ---- barra de vida do Boss ----
     if (d.boss) {
@@ -151,7 +172,9 @@ export class Hud {
       if (d.wave === 1) {
         ctx.font = `700 16px ${FONT}`;
         ctx.lineWidth = 4;
-        const help = 'WASD mover  ·  Mouse mirar  ·  Botão esq. atacar  ·  Espaço dash  ·  Botão dir. habilidade';
+        const help = touch
+          ? 'Lado esquerdo: mover  ·  Lado direito: atacar (segure = mira automática, arraste = mirar)'
+          : 'WASD mover  ·  Mouse mirar  ·  Botão esq. atacar  ·  Espaço dash  ·  Botão dir. habilidade';
         ctx.strokeText(help, cx, H * 0.3 + 40);
         ctx.fillStyle = '#d7ccff';
         ctx.fillText(help, cx, H * 0.3 + 40);
@@ -159,8 +182,10 @@ export class Hud {
       ctx.globalAlpha = 1;
     }
 
+    if (touch) this.touchControls(r, d);
+
     // ---- mira ----
-    if (d.showCursor) {
+    if (d.showCursor && !touch) {
       const mx = d.mouseX, my = d.mouseY;
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 4;
@@ -168,6 +193,127 @@ export class Hud {
       ctx.strokeStyle = p.def.color;
       ctx.lineWidth = 2;
       this.crosshair(ctx, mx, my);
+    }
+  }
+
+  // ---------- controles virtuais (apenas no toque) ----------
+  private touchControls(r: Renderer, d: HudData): void {
+    const ctx = r.ctx;
+    const p = d.player;
+    const inp = d.input;
+    const L = inp.layout();
+    const color = p.def.color;
+
+    // joystick: base onde o polegar ancorou (ou uma dica discreta de onde tocar)
+    const s = inp.stick;
+    const held = s.id !== -1;
+    const jx = held ? s.ox / r.scale : 132, jy = held ? s.oy / r.scale : r.h - 132;
+    ctx.globalAlpha = held ? 0.5 : 0.2;
+    this.disc(ctx, jx, jy, STICK_R + 14, 'rgba(10,6,24,0.7)', '#ffffff', 2);
+    ctx.globalAlpha = held ? 0.95 : 0.3;
+    this.disc(ctx, jx + s.x * STICK_R, jy + s.y * STICK_R, 26, color, '#000', 3);
+    ctx.globalAlpha = 1;
+
+    // ataque: mostra a direção quando o arraste vira mira manual
+    const a = inp.attack;
+    const pressed = a.id !== -1;
+    this.button(ctx, L.attack, color, pressed, 0, 1, a.aiming ? 'MIRA' : 'ATAQUE', pressed && !a.aiming ? 'AUTO' : '');
+    if (a.aiming) {
+      const len = Math.hypot(a.dx, a.dy) || 1;
+      const kx = a.dx / len, ky = a.dy / len;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 9;
+      ctx.lineCap = 'round';
+      for (const [stroke, lw] of [['#000', 9], ['#ffffff', 4]] as const) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.moveTo(L.attack.x + kx * 18, L.attack.y + ky * 18);
+        ctx.lineTo(L.attack.x + kx * (L.attack.r - 8), L.attack.y + ky * (L.attack.r - 8));
+        ctx.stroke();
+      }
+    }
+    this.button(ctx, L.dash, color, inp.down.dash, p.dashCd, p.dashCdMax, p.def.dashName, '');
+    this.button(ctx, L.secondary, color, inp.down.secondary, p.secCd, p.secCdMax, p.def.secName, '');
+
+    // pausa e som no canto superior direito
+    for (const [b, kind] of [[L.pause, 'pause'], [L.mute, 'mute']] as const) {
+      ctx.globalAlpha = 0.75;
+      this.disc(ctx, b.x, b.y, b.r, 'rgba(10,6,24,0.75)', '#b9a8ff', 2);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffffff';
+      if (kind === 'pause') {
+        ctx.fillRect(b.x - 9, b.y - 11, 6, 22);
+        ctx.fillRect(b.x + 3, b.y - 11, 6, 22);
+      } else {
+        // alto-falante: caixa + cone; ondas quando ligado, X quando mudo
+        ctx.beginPath();
+        ctx.moveTo(b.x - 13, b.y - 5); ctx.lineTo(b.x - 7, b.y - 5); ctx.lineTo(b.x, b.y - 12);
+        ctx.lineTo(b.x, b.y + 12); ctx.lineTo(b.x - 7, b.y + 5); ctx.lineTo(b.x - 13, b.y + 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = d.muted ? '#ff3b5c' : '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (d.muted) {
+          ctx.moveTo(b.x + 5, b.y - 6); ctx.lineTo(b.x + 14, b.y + 6);
+          ctx.moveTo(b.x + 14, b.y - 6); ctx.lineTo(b.x + 5, b.y + 6);
+        } else {
+          ctx.arc(b.x + 2, b.y, 7, -0.9, 0.9);
+          ctx.moveTo(b.x + 2 + 12 * Math.cos(-0.9), b.y + 12 * Math.sin(-0.9));
+          ctx.arc(b.x + 2, b.y, 12, -0.9, 0.9);
+        }
+        ctx.stroke();
+      }
+    }
+  }
+
+  private disc(ctx: CanvasRenderingContext2D, x: number, y: number, rad: number, fill: string, stroke: string, lw: number): void {
+    ctx.beginPath();
+    ctx.arc(x, y, rad, 0, TAU);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+  }
+
+  /** Botão circular com recarga em "pizza" (a fatia escura some conforme a recarga termina). */
+  private button(
+    ctx: CanvasRenderingContext2D, b: TouchButton, color: string, pressed: boolean,
+    cd: number, max: number, label: string, sub: string,
+  ): void {
+    const ready = cd <= 0;
+    ctx.globalAlpha = pressed ? 0.95 : 0.6;
+    this.disc(ctx, b.x, b.y, b.r, ready ? color : '#221a3d', '#000', 4);
+    ctx.globalAlpha = 1;
+    if (!ready) {
+      const f = Math.min(1, cd / max);
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.arc(b.x, b.y, b.r - 2, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - f));
+      ctx.closePath();
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, TAU);
+    ctx.strokeStyle = pressed ? '#ffffff' : 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = ready ? '#05030a' : '#ffffff';
+    ctx.font = `900 ${label.length > 6 ? 11 : 13}px ${FONT}`;
+    ctx.fillText(label, b.x, b.y + (ready && !sub ? 5 : -3));
+    if (!ready) {
+      ctx.font = `900 17px ${FONT}`;
+      ctx.fillText(cd.toFixed(1), b.x, b.y + 17);
+    } else if (sub) {
+      ctx.font = `800 11px ${FONT}`;
+      ctx.fillText(sub, b.x, b.y + 14);
     }
   }
 
