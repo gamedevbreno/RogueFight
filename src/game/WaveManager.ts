@@ -1,11 +1,15 @@
 import { rand, shuffle } from '../core/math';
-import { ARENA, STAGE_WAVES, TOTAL_WAVES } from './config';
+import { ARENA, STAGE_WAVES, TOTAL_WAVES, stageOf, stageWave } from './config';
 import { Bomber } from './enemies/Bomber';
 import { Boss } from './enemies/Boss';
 import { Chaser } from './enemies/Chaser';
+import { Cryomancer } from './enemies/Cryomancer';
 import type { Enemy, EnemyKind } from './enemies/Enemy';
 import { FireBoss } from './enemies/FireBoss';
+import { FrostStalker } from './enemies/FrostStalker';
+import { GlacialGolem } from './enemies/GlacialGolem';
 import { Hellhound } from './enemies/Hellhound';
+import { IceBoss } from './enemies/IceBoss';
 import { MagmaBrute } from './enemies/MagmaBrute';
 import { Pyromancer } from './enemies/Pyromancer';
 import { Shooter } from './enemies/Shooter';
@@ -17,20 +21,15 @@ import type { World } from './World';
  * poucas ondas, sempre com pouca companhia para o jogador aprender a mecânica.
  *
  * FASE 1 — Ruínas Arcanas
- *   1      chaser (aquecimento)
- *   2-3    + shooter
- *   4-5    + tank (estreia na 4, só com chasers)
- *   6-7    + bomber (estreia na 6)
- *   8-9    os quatro tipos juntos
- *   10     Boss: Arconte Abissal
+ *   1 chaser · 2-3 + shooter · 4-5 + tank · 6-7 + bomber · 8-9 tudo · 10 Arconte Abissal
  *
  * FASE 2 — Cratera Vulcânica (poças de lava ocasionais)
- *   1-2    só inimigos da Fase 1: o jogador aprende a arena de fogo primeiro
- *   3-4    + Salamandra Ígnea (hellhound)
- *   5-6    + Piromante Cinzento (pyromancer)
- *   7      + Golem de Magma (brute)
- *   8-9    tudo misturado
- *   10     Boss: Senhor das Cinzas
+ *   1-2 só inimigos da Fase 1 · 3-4 + hellhound · 5-6 + pyromancer · 7 + brute
+ *   8-9 tudo · 10 Senhor das Cinzas
+ *
+ * FASE 3 — Cidadela Glacial (zonas de geada ocasionais)
+ *   1-2 inimigos das fases anteriores · 3-4 + stalker · 5-6 + cryomancer · 7 + golem
+ *   8-9 mistura intensa · 10 Soberano do Inverno
  */
 const WAVES: Partial<Record<EnemyKind, number>>[] = [
   // ---- Fase 1 ----
@@ -55,10 +54,23 @@ const WAVES: Partial<Record<EnemyKind, number>>[] = [
   { brute: 2, pyromancer: 4, hellhound: 7, bomber: 3 },
   { brute: 3, pyromancer: 5, hellhound: 8, tank: 2, bomber: 3 },
   { fireBoss: 1, hellhound: 3, pyromancer: 2 },
+  // ---- Fase 3 ----
+  { hellhound: 6, pyromancer: 3, chaser: 6, bomber: 2 },
+  { brute: 2, hellhound: 6, shooter: 4, tank: 2 },
+  { stalker: 5, chaser: 6, shooter: 3 },
+  { stalker: 7, hellhound: 4, bomber: 3 },
+  { cryomancer: 3, stalker: 5, chaser: 4 },
+  { cryomancer: 4, stalker: 6, pyromancer: 3, tank: 1 },
+  { golem: 2, stalker: 5, cryomancer: 2 },
+  { golem: 2, cryomancer: 4, stalker: 7, brute: 1, bomber: 3 },
+  { golem: 3, cryomancer: 5, stalker: 8, hellhound: 4, pyromancer: 2 },
+  { iceBoss: 1, stalker: 3, cryomancer: 2 },
 ];
 
 /** Tipos que entram na fila embaralhada (os chefes são tratados à parte). */
-const REGULAR = ['chaser', 'shooter', 'tank', 'bomber', 'hellhound', 'pyromancer', 'brute'] as const;
+const REGULAR = ['chaser', 'shooter', 'tank', 'bomber', 'hellhound', 'pyromancer', 'brute', 'stalker', 'cryomancer', 'golem'] as const;
+const BOSSES = ['boss', 'fireBoss', 'iceBoss'] as const;
+const isBoss = (k: EnemyKind): boolean => (BOSSES as readonly string[]).includes(k);
 
 function make(kind: EnemyKind, x: number, y: number, hpScale: number): Enemy {
   switch (kind) {
@@ -69,14 +81,21 @@ function make(kind: EnemyKind, x: number, y: number, hpScale: number): Enemy {
     case 'hellhound': return new Hellhound(x, y, hpScale);
     case 'pyromancer': return new Pyromancer(x, y, hpScale);
     case 'brute': return new MagmaBrute(x, y, hpScale);
+    case 'stalker': return new FrostStalker(x, y, hpScale);
+    case 'cryomancer': return new Cryomancer(x, y, hpScale);
+    case 'golem': return new GlacialGolem(x, y, hpScale);
     case 'boss': return new Boss(x, y);
     case 'fireBoss': return new FireBoss(x, y);
+    case 'iceBoss': return new IceBoss(x, y);
   }
 }
 
-/** Vida dos inimigos comuns: +10% por onda na Fase 1; a Fase 2 parte de 1,7x e sobe 8% por onda. */
+/** Vida dos inimigos comuns por fase: [multiplicador inicial, crescimento por onda]. */
+const HP_CURVE = [[1, 0.1], [1.7, 0.08], [2.4, 0.08]];
+
 function hpScale(wave: number): number {
-  return wave <= STAGE_WAVES ? 1 + 0.1 * (wave - 1) : 1.7 + 0.08 * (wave - STAGE_WAVES - 1);
+  const [base, step] = HP_CURVE[stageOf(wave) - 1];
+  return base + step * (stageWave(wave) - 1);
 }
 
 export class WaveManager {
@@ -98,8 +117,7 @@ export class WaveManager {
     }
     shuffle(this.queue);
     // fim da fila = primeiro a nascer
-    if (def.boss) this.queue.push('boss');
-    if (def.fireBoss) this.queue.push('fireBoss');
+    for (const b of BOSSES) if (def[b]) this.queue.push(b);
     this.spawnT = 1.1;
     this.clearT = 0;
     this.banner = 2.4;
@@ -120,11 +138,11 @@ export class WaveManager {
     const cap = Math.min(16, 6 + Math.round(local * 1.4)); // limite de inimigos simultâneos
     if (this.queue.length && this.spawnT <= 0 && w.enemies.length < cap) {
       const kind = this.queue.pop()!;
-      const isBoss = kind === 'boss' || kind === 'fireBoss';
-      const pos = isBoss ? this.bossPoint(w) : this.spawnPoint(w);
+      const boss = isBoss(kind);
+      const pos = boss ? this.bossPoint(w) : this.spawnPoint(w);
       w.enemies.push(make(kind, pos.x, pos.y, hpScale(this.wave)));
-      w.sfx.play(isBoss ? 'roar' : 'spawn');
-      this.spawnT = isBoss ? 2.2 : 0.45;
+      w.sfx.play(boss ? 'roar' : 'spawn');
+      this.spawnT = boss ? 2.2 : 0.45;
     }
 
     // a onda só termina quando não sobra inimigo nem bomba instável no chão

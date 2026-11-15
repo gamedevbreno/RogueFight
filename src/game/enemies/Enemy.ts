@@ -4,7 +4,8 @@ import type { World } from '../World';
 
 export type EnemyKind =
   | 'chaser' | 'shooter' | 'tank' | 'bomber' | 'boss'
-  | 'hellhound' | 'pyromancer' | 'brute' | 'fireBoss';
+  | 'hellhound' | 'pyromancer' | 'brute' | 'fireBoss'
+  | 'stalker' | 'cryomancer' | 'golem' | 'iceBoss';
 
 export interface EnemyCfg {
   hp: number;

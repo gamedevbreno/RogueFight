@@ -14,12 +14,23 @@ B = rf.B
 
 rf.reset()
 rf.OUTLINE_W = 0.036
-M = dict(
-    rock=rf.toon("rock", "#8a7074", "#3a2c30", "#b89ea2"),
-    rock2=rf.toon("rock2", "#6c565a", "#2c2024", "#967c82"),
-    magma=rf.glow("magma", "#ff6a14"),
-    hot=rf.glow("hot", "#ffd23a"),
-)
+# VARIANT é definido por golem.py (Colosso de Gelo); o padrão é o Golem de Magma.
+ICE = globals().get("VARIANT") == "ice"
+NAME = "golem" if ICE else "brute"
+if ICE:
+    M = dict(
+        rock=rf.toon("rock", "#a8d4f0", "#4a7aa8", "#e8f8ff"),      # gelo maciço
+        rock2=rf.toon("rock2", "#3a5a8a", "#16263e", "#5c84b8"),    # placas de armadura
+        magma=rf.glow("magma", "#68e8ff"),
+        hot=rf.glow("hot", "#e8fbff"),
+    )
+else:
+    M = dict(
+        rock=rf.toon("rock", "#8a7074", "#3a2c30", "#b89ea2"),
+        rock2=rf.toon("rock2", "#6c565a", "#2c2024", "#967c82"),
+        magma=rf.glow("magma", "#ff6a14"),
+        hot=rf.glow("hot", "#ffd23a"),
+    )
 J = {}
 
 
@@ -65,6 +76,9 @@ for s, sx in (("L", 1), ("R", -1)):
     j("arm" + s, "spine", (0.86 * sx, 0, 0.86))
     rf.mk("shj" + s, B().sphere((0, 0, 0), 0.22), M["magma"], J["arm" + s], outline=0)
     rf.mk("pad" + s, rock((0.06 * sx, 0, 0.14), 0.42, (1.1, 1.05, 0.85), rot=("Z", 40 * sx)), M["rock2"], J["arm" + s], smooth=False)
+    if ICE:   # cristais de gelo brotando das ombreiras
+        rf.mk("crys" + s, B().cone((0.06 * sx, 0, 0.3), (0.34 * sx, 0, 1.05), 0.2, 0, seg=5)
+              .cone((0.06 * sx, 0.1, 0.3), (-0.12 * sx, 0.32, 0.85), 0.15, 0, seg=5), M["magma"], J["arm" + s], smooth=False, outline=0.03)
     rf.mk("upper" + s, rock((0.04 * sx, 0, -0.36), 0.26, (0.9, 0.95, 1.3)), M["rock"], J["arm" + s], smooth=False)
     j("fore" + s, "arm" + s, (0.04 * sx, 0, -0.66))
     rf.mk("elj" + s, B().sphere((0, 0, 0), 0.17), M["magma"], J["fore" + s], outline=0)
@@ -107,7 +121,7 @@ def pound(i, n):
 
 ANIMS = [("walk", 4, walk), ("pound", 3, pound)]
 if PREVIEW:
-    rf.preview(rf.TMP + "/brute_prev.png", J["root"], [lambda: walk(0, 4), lambda: walk(1, 4), lambda: pound(1, 3), lambda: pound(2, 3)], 320, 5.0, 1.25)
+    rf.preview(rf.TMP + "/" + NAME + "_prev.png", J["root"], [lambda: walk(0, 4), lambda: walk(1, 4), lambda: pound(1, 3), lambda: pound(2, 3)], 320, 5.0, 1.25)
 else:
-    rf.sheet(rf.OUT + "/enemy_brute.png", J["root"], ANIMS, 320, 320, 5.0, 1.25)
+    rf.sheet(rf.OUT + "/enemy_" + NAME + ".png", J["root"], ANIMS, 320, 320, 5.0, 1.25)
 rf.OUTLINE_W = 0.026

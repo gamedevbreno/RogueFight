@@ -6,9 +6,12 @@ modelo do zero (malhas, materiais toon, juntas e poses) e renderiza a spriteshee
 
 | Script | Saída |
 |---|---|
-| `blade.py` | `player_blade.png` (idle, run, attack, dash) |
+| `blade.py` | `player_blade.png` — Lâmina Espectral (idle, run, attack, dash) |
 | `sword.py` | `weapon_blade.png` (espada vista de cima) |
-| `mage.py` | `player_mage.png` (idle, run, cast) |
+| `mage.py` | `player_mage.png` — Arcanista (idle, run, cast) |
+| `warrior.py` | `player_warrior.png` — Valquíria de Ferro (idle, run, attack, dash) |
+| `hammer.py` | `weapon_hammer.png` (martelo de guerra visto de cima) |
+| `archer.py` | `player_archer.png` — Caçador Astral (idle, run, shoot, dash) |
 | `chaser.py` | `enemy_chaser.png` (chase, windup, lunge) |
 | `shooter.py` | `enemy_shooter.png` (float, charging) |
 | `tank.py` | `enemy_tank.png` (walk, leap, slam) |
@@ -21,6 +24,25 @@ modelo do zero (malhas, materiais toon, juntas e poses) e renderiza a spriteshee
 | `brute.py` | `enemy_brute.png` — Golem de Magma (walk, pound) |
 | `fireboss.py` | `enemy_fireboss.png` — Senhor das Cinzas (walk, wave, cast) |
 | `arena_fire.py` | `arena_fire_tile.png`, `arena_fire_wall.png`, `arena_fire_pillar.png` |
+
+| **Fase 3 — Cidadela Glacial** | |
+| `stalker.py` | `enemy_stalker.png` — Lobo Glacial (chase, windup, lunge) |
+| `cryomancer.py` | `enemy_cryomancer.png` — Tecelã de Cristal (float, charging) |
+| `golem.py` | `enemy_golem.png` — Colosso de Gelo (walk, pound) |
+| `ice_boss.py` | `enemy_ice_boss.png` — Soberano do Inverno (walk, cast, slam) |
+| `arena_ice.py` | `arena_ice_tile.png`, `arena_ice_wall.png`, `arena_ice_pillar.png` |
+
+### Variantes
+
+Alguns scripts são só um *wrapper* que define uma variável e executa outro script, que
+troca paleta e detalhes do modelo mantendo a anatomia e as animações:
+
+| Wrapper | Executa | Variável |
+|---|---|---|
+| `stalker.py` | `chaser.py` | `VARIANT = "ice"` (lobo: orelhas no lugar dos chifres, crista de cristais) |
+| `golem.py` | `brute.py` | `VARIANT = "ice"` (gelo maciço, cristais nos ombros) |
+| `ice_boss.py` | `boss.py` | `VARIANT = "ice"` (coroa de gelo, asas de cristal, sem halo) |
+| `arena_fire.py` / `arena_ice.py` | `arena.py` | `THEME = "fire"` / `"ice"` |
 
 `arena_fire.py` só define `THEME = "fire"` e executa `arena.py`: a geometria é a mesma e a
 paleta vem do dicionário `PAL` (basalto, rachaduras de magma, cristais em brasa).

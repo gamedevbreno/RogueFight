@@ -15,14 +15,27 @@ B = rf.B
 
 rf.reset()
 rf.OUTLINE_W = 0.04
-M = dict(
-    armor=rf.toon("armor", "#8a1a3c", "#3d0a22", "#d4365e"),
-    dark=rf.toon("dark", "#3a1436", "#170818", "#5c2456"),
-    wing=rf.toon("wing", "#7a1c5c", "#3a0c30", "#a8347e"),
-    bone=rf.toon("bone", "#f6e6d0", "#b89878", "#ffffff"),
-    fire=rf.glow("fire", "#ff3b4e"),
-    black=rf.glow("black", "#12040e"),
-)
+# VARIANT é definido por ice_boss.py (Soberano do Inverno); o padrão é o Arconte Abissal.
+ICE = globals().get("VARIANT") == "ice"
+NAME = "ice_boss" if ICE else "boss"
+if ICE:
+    M = dict(
+        armor=rf.toon("armor", "#4a6aa0", "#1c2c4c", "#7c9cd0"),    # armadura glacial real
+        dark=rf.toon("dark", "#243658", "#0e1626", "#3c5484"),
+        wing=rf.toon("wing", "#9fe8ff", "#3a90c0", "#ffffff"),      # asas de cristal
+        bone=rf.toon("bone", "#f0faff", "#9cc0dc", "#ffffff"),
+        fire=rf.glow("fire", "#68e8ff"),
+        black=rf.glow("black", "#0a1424"),
+    )
+else:
+    M = dict(
+        armor=rf.toon("armor", "#8a1a3c", "#3d0a22", "#d4365e"),
+        dark=rf.toon("dark", "#3a1436", "#170818", "#5c2456"),
+        wing=rf.toon("wing", "#7a1c5c", "#3a0c30", "#a8347e"),
+        bone=rf.toon("bone", "#f6e6d0", "#b89878", "#ffffff"),
+        fire=rf.glow("fire", "#ff3b4e"),
+        black=rf.glow("black", "#12040e"),
+    )
 J = {}
 
 
@@ -59,15 +72,21 @@ rf.mk("helm", B().sphere((0, 0, 0.08), 0.3, (1, 1.05, 1.0), seg=22).box((0, -0.2
 rf.mk("eyes", B().box((0.11, -0.29, 0.1), (0.13, 0.04, 0.05), rot=("Y", 18)).box((-0.11, -0.29, 0.1), (0.13, 0.04, 0.05), rot=("Y", -18)),
       M["fire"], J["head"], outline=0)
 horn = B()
-for sx in (1, -1):
-    horn.cone((0.2 * sx, 0.02, 0.25), (0.55 * sx, 0.1, 0.5), 0.12, 0.09, seg=10).sphere((0.55 * sx, 0.1, 0.5), 0.09)
-    horn.cone((0.55 * sx, 0.1, 0.5), (0.72 * sx, 0.0, 0.95), 0.09, 0.05, seg=10).sphere((0.72 * sx, 0.0, 0.95), 0.05)
-    horn.cone((0.72 * sx, 0.0, 0.95), (0.5 * sx, -0.15, 1.3), 0.05, 0, seg=10)
-    horn.cone((0.12 * sx, 0.1, 0.3), (0.2 * sx, 0.2, 0.62), 0.07, 0, seg=8)
-horn.cone((0, -0.05, 0.33), (0, -0.12, 0.75), 0.08, 0, seg=8)
+if ICE:   # coroa de gelo: espigões retos e altos em volta do elmo
+    for k in range(7):
+        cx, cy = 0.28 * cos(k * 0.8976), 0.28 * sin(k * 0.8976)
+        horn.cone((cx, cy, 0.2), (cx * 1.5, cy * 1.5, 0.78 + 0.26 * (k % 2)), 0.09, 0, seg=5)
+else:
+    for sx in (1, -1):
+        horn.cone((0.2 * sx, 0.02, 0.25), (0.55 * sx, 0.1, 0.5), 0.12, 0.09, seg=10).sphere((0.55 * sx, 0.1, 0.5), 0.09)
+        horn.cone((0.55 * sx, 0.1, 0.5), (0.72 * sx, 0.0, 0.95), 0.09, 0.05, seg=10).sphere((0.72 * sx, 0.0, 0.95), 0.05)
+        horn.cone((0.72 * sx, 0.0, 0.95), (0.5 * sx, -0.15, 1.3), 0.05, 0, seg=10)
+        horn.cone((0.12 * sx, 0.1, 0.3), (0.2 * sx, 0.2, 0.62), 0.07, 0, seg=8)
+    horn.cone((0, -0.05, 0.33), (0, -0.12, 0.75), 0.08, 0, seg=8)
 rf.mk("horns", horn, M["bone"], J["head"])
-j("halo", "head", (0, 0.3, 0.45), rot0=(76, 0, 0))
-rf.mk("halo", B().torus(0.66, 0.035, seg=40), M["fire"], J["halo"], outline=0)
+if not ICE:
+    j("halo", "head", (0, 0.3, 0.45), rot0=(76, 0, 0))
+    rf.mk("halo", B().torus(0.66, 0.035, seg=40), M["fire"], J["halo"], outline=0)
 
 for s, sx in (("L", 1), ("R", -1)):
     j("arm" + s, "spine", (0.85 * sx, 0, 0.92))
@@ -209,8 +228,10 @@ def slam(i, n):
 
 
 ANIMS = [("walk", 4, walk), ("slash", 4, slash), ("cast", 3, cast), ("slam", 4, slam)]
+if ICE:   # o Soberano não usa o golpe de glaive
+    ANIMS = [("walk", 4, walk), ("cast", 3, cast), ("slam", 4, slam)]
 if PREVIEW:
-    rf.preview(rf.TMP + "/boss_prev.png", J["root"], [lambda: walk(0, 4), lambda: slash(1, 4), lambda: slash(2, 4), lambda: cast(1, 3), lambda: slam(1, 4), lambda: slam(2, 4)], 320, 7.8, 1.9)
+    rf.preview(rf.TMP + "/" + NAME + "_prev.png", J["root"], [lambda: walk(0, 4), lambda: slash(1, 4), lambda: slash(2, 4), lambda: cast(1, 3), lambda: slam(1, 4), lambda: slam(2, 4)], 320, 7.8, 1.9)
 else:
-    rf.sheet(rf.OUT + "/enemy_boss.png", J["root"], ANIMS, 384, 384, 7.8, 1.9)
+    rf.sheet(rf.OUT + "/enemy_" + NAME + ".png", J["root"], ANIMS, 384, 384, 7.8, 1.9)
 rf.OUTLINE_W = 0.026

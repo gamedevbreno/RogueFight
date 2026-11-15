@@ -16,6 +16,9 @@ export class Chaser extends Enemy {
   protected lungeTime = 0.24;
   protected damage = 8;
   protected burnChance = 0; // chance de aplicar Queimadura ao acertar
+  protected chillChance = 0; // chance de aplicar Calafrio ao acertar
+  protected lungeCount = 1; // botes seguidos por investida
+  private lungesLeft = 0;
 
   protected state: 'chase' | 'windup' | 'lunge' | 'recover' = 'chase';
   protected t = 0;
@@ -49,6 +52,7 @@ export class Chaser extends Enemy {
           this.state = 'windup';
           this.t = 0.34;
           this.ang = Math.atan2(dy, dx);
+          this.lungesLeft = this.lungeCount;
         }
         break;
       }
@@ -67,11 +71,18 @@ export class Chaser extends Enemy {
         this.onLunge(w, dt);
         if (!this.hitDone && d < this.radius + p.radius + 4) {
           this.hitDone = true;
-          w.damagePlayer(this.damage, this.burnChance);
+          w.damagePlayer(this.damage, this.burnChance, this.chillChance);
         }
         if ((this.t -= dt) <= 0) {
-          this.state = 'recover';
-          this.t = 0.55;
+          if (--this.lungesLeft > 0) {
+            // emenda outro bote: telegraph curto e nova mira
+            this.state = 'windup';
+            this.t = 0.24;
+            this.ang = Math.atan2(dy, dx);
+          } else {
+            this.state = 'recover';
+            this.t = 0.55;
+          }
         }
         break;
       case 'recover':

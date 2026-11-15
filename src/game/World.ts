@@ -5,7 +5,7 @@ import { FloatText, Particles, Ring, type Fx } from '../fx/Fx';
 import type { Renderer } from '../render/Renderer';
 import { ARENA } from './config';
 import type { Enemy } from './enemies/Enemy';
-import { LavaPool } from './LavaPool';
+import { FrostPool, LavaPool } from './LavaPool';
 import type { Player } from './Player';
 
 /** Objeto de simulação genérico (projéteis, clones, explosões com atraso...). */
@@ -30,6 +30,10 @@ export interface HitOpts {
   dot?: boolean; // dano periódico: sem flash, partículas nem som de impacto
   bleed?: boolean; // golpe cortante: pode aplicar Sangramento (Fio Serrilhado)
   shock?: boolean; // golpe arcano: pode Paralisar (Sobrecarga Neural)
+  hammer?: boolean; // golpe de martelo: pode Paralisar + Sangrar (Esmagamento Craniano)
+  barbed?: boolean; // flecha: pode Envenenar + Sangrar (Pontas Envenenadas)
+  mult?: number; // multiplicador extra de dano do golpe (entrada de Player.hit)
+  forceCrit?: boolean; // crítico garantido (entrada de Player.hit)
 }
 
 /** Ganchos de game feel fornecidos pelo Game (hitstop/shake vivem fora da simulação). */
@@ -82,7 +86,7 @@ export class World {
   }
 
   /**
-   * Fase 2: de tempos em tempos surge uma poça de lava num ponto ALEATÓRIO da arena
+   * Fases 2 e 3: de tempos em tempos surge uma poça (lava ou geada) num ponto ALEATÓRIO da arena
    * (não mira o jogador). É rara: no máximo 2 grandes ao mesmo tempo.
    */
   private updateLava(dt: number): void {
@@ -90,7 +94,9 @@ export class World {
     this.lavaT = rand(15, 20);
     const big = this.actors.filter((a) => a instanceof LavaPool && a.big).length;
     if (big >= 2) return;
-    this.actors.push(new LavaPool(rand(-ARENA.w / 2 + 140, ARENA.w / 2 - 140), rand(-ARENA.h / 2 + 140, ARENA.h / 2 - 140)));
+    const x = rand(-ARENA.w / 2 + 140, ARENA.w / 2 - 140), y = rand(-ARENA.h / 2 + 140, ARENA.h / 2 - 140);
+    // Fase 2: lava (Queimadura) · Fase 3: Zona de Geada (Calafrio)
+    this.actors.push(this.stage >= 3 ? new FrostPool(x, y) : new LavaPool(x, y));
   }
 
   private separate(): void {
@@ -196,11 +202,18 @@ export class World {
 
   /**
    * Aplica um golpe ao jogador. Retorna false se ele estava invulnerável (i-frames).
-   * `burnChance`: chance de o golpe também aplicar Queimadura (inimigos de fogo).
+   * `burnChance` / `chillChance`: chance de o golpe também aplicar Queimadura (inimigos
+   * de fogo) ou Calafrio (inimigos de gelo).
    */
-  damagePlayer(amount: number, burnChance = 0): boolean {
+  damagePlayer(amount: number, burnChance = 0, chillChance = 0): boolean {
     const p = this.player;
     if (p.dead || p.iframes > 0) return false;
+    if (p.iceShield) {
+      p.breakIceShield(this); // Armadura de Cristal: bloqueia o golpe inteiro
+      return false;
+    }
+    amount = Math.max(1, Math.round(amount * p.guardMult)); // Casca de Titã
+    if (p.up('retaliate')) p.empowered = true; // Revide Brutal: apanhar energiza o próximo golpe
     p.hp -= amount;
     p.iframes = 0.7;
     p.hurt = 0.7;
@@ -211,7 +224,10 @@ export class World {
     this.shake(0.6);
     this.hitstop(0.09);
     if (p.hp <= 0) this.killPlayer();
-    else if (burnChance && Math.random() < burnChance) p.ignite(2.5);
+    else {
+      if (burnChance && Math.random() < burnChance) p.ignite(2.5);
+      if (chillChance && Math.random() < chillChance) p.inflictChill();
+    }
     return true;
   }
 

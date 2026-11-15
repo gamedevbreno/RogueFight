@@ -7,10 +7,11 @@ export interface ProjCfg {
   x: number; y: number; z: number;
   ang: number; speed: number; radius: number; life: number;
   color: string;
-  kind: 'orb' | 'wave' | 'bolt';
+  kind: 'orb' | 'wave' | 'bolt' | 'arrow';
   friendly: boolean;
   damage?: number; // usado por projéteis inimigos
   burnChance?: number; // projéteis inimigos de fogo
+  chillChance?: number; // projéteis inimigos de gelo
   /** Chamado quando o projétil acaba (alcance, parede ou acerto no jogador). */
   onEnd?: (p: Projectile, w: World) => void;
   /** Projéteis do jogador: lógica de acerto. Retorne true para destruir o projétil. */
@@ -76,7 +77,7 @@ export class Projectile implements Actor {
       const p = w.player;
       if (!p.dead && Math.hypot(p.x - this.x, p.y - this.y) < c.radius + p.radius) {
         // se o jogador estiver em i-frames, o projétil atravessa (esquiva perfeita)
-        if (w.damagePlayer(c.damage ?? 1, c.burnChance ?? 0)) {
+        if (w.damagePlayer(c.damage ?? 1, c.burnChance ?? 0, c.chillChance ?? 0)) {
           this.dead = true;
           c.onEnd?.(this, w);
         }
@@ -132,6 +133,21 @@ export class Projectile implements Actor {
       ctx.fill();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
+    } else if (c.kind === 'arrow') {
+      // flecha do Arqueiro; a perfurante (raio maior) é mais longa e brilha
+      const big = c.radius > 10;
+      const len = big ? 46 : 30;
+      const tx = x - cs * len, ty = y - sn * len;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.4;
+      r.line(x - cs * len * 1.8, y - sn * len * 1.8, this.z, x, y, this.z, c.color, big ? 8 : 4);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      r.line(tx, ty, this.z, x, y, this.z, '#06281a', big ? 6.5 : 4.5);
+      r.line(tx, ty, this.z, x, y, this.z, c.color, big ? 3.5 : 2.2);
+      const hw = big ? 8 : 5.5;
+      r.poly([x + cs * 11, y + sn * 11, this.z, x - sn * hw, y + cs * hw, this.z, x + sn * hw, y - cs * hw, this.z], '#f2fff6', '#06281a', 1.5);
+      if (big) r.glow(x, y, this.z, 18, c.color, 0.4);
     } else {
       // projétil inimigo: flutua em Z; a haste liga o corpo à sombra no chão
       const z = this.z + Math.sin(this.t * 14) * 3;

@@ -64,6 +64,12 @@ export class Hud {
       ctx.fillText(`♨ QUEIMANDO ${p.burnT.toFixed(1)}s`, bx + bw - 118, by - 10);
       ctx.fillRect(bx - 5, by - 5, bw + 10, bh + 10);
     }
+    if (p.chilled) {
+      // aviso de Calafrio (fica à esquerda do de Queimadura quando os dois estão ativos)
+      ctx.fillStyle = Math.floor(d.time * 5) % 2 ? '#e8fbff' : '#68e8ff';
+      ctx.fillText(`❄ CONGELANDO ${p.chillT.toFixed(1)}s`, bx + bw - (p.burning ? 250 : 128), by - 10);
+      if (!p.burning) ctx.fillRect(bx - 5, by - 5, bw + 10, bh + 10);
+    }
     ctx.fillStyle = '#000';
     ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
     ctx.fillStyle = '#2b0d1a';

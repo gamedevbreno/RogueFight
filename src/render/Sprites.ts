@@ -111,6 +111,14 @@ export const SHEETS = {
     file: 'player_mage.png', cw: 256, ch: 256, ax: 128, ay: 197.1, scale: 0.71,
     anims: { idle: { row: 0, frames: 4 }, run: { row: 1, frames: 6 }, cast: { row: 2, frames: 3 } },
   }),
+  warrior: new Sheet({
+    file: 'player_warrior.png', cw: 256, ch: 256, ax: 128, ay: 194.3, scale: 0.7,
+    anims: { idle: { row: 0, frames: 4 }, run: { row: 1, frames: 6 }, attack: { row: 2, frames: 4 }, dash: { row: 3, frames: 2 } },
+  }),
+  archer: new Sheet({
+    file: 'player_archer.png', cw: 256, ch: 256, ax: 128, ay: 188.1, scale: 0.775,
+    anims: { idle: { row: 0, frames: 4 }, run: { row: 1, frames: 6 }, shoot: { row: 2, frames: 3 }, dash: { row: 3, frames: 2 } },
+  }),
   chaser: new Sheet({
     file: 'enemy_chaser.png', cw: 256, ch: 256, ax: 128, ay: 161.2, scale: 0.54,
     anims: { chase: { row: 0, frames: 4 }, windup: { row: 1, frames: 2 }, lunge: { row: 2, frames: 2 } },
@@ -143,12 +151,30 @@ export const SHEETS = {
     file: 'enemy_fireboss.png', cw: 384, ch: 384, ax: 192, ay: 272.6, scale: 0.95,
     anims: { walk: { row: 0, frames: 4 }, wave: { row: 1, frames: 3 }, cast: { row: 2, frames: 3 } },
   }),
+  stalker: new Sheet({
+    file: 'enemy_stalker.png', cw: 256, ch: 256, ax: 128, ay: 161.2, scale: 0.56,
+    anims: { chase: { row: 0, frames: 4 }, windup: { row: 1, frames: 2 }, lunge: { row: 2, frames: 2 } },
+  }),
+  cryomancer: new Sheet({
+    file: 'enemy_cryomancer.png', cw: 256, ch: 256, ax: 128, ay: 192.1, scale: 0.54,
+    anims: { float: { row: 0, frames: 4 }, charging: { row: 1, frames: 3 } },
+  }),
+  golem: new Sheet({
+    file: 'enemy_golem.png', cw: 320, ch: 320, ax: 160, ay: 220.1, scale: 0.74,
+    anims: { walk: { row: 0, frames: 4 }, pound: { row: 1, frames: 3 } },
+  }),
+  iceBoss: new Sheet({
+    file: 'enemy_ice_boss.png', cw: 384, ch: 384, ax: 192, ay: 262.3, scale: 1.15,
+    anims: { walk: { row: 0, frames: 4 }, cast: { row: 1, frames: 3 }, slam: { row: 2, frames: 4 } },
+  }),
   boss: new Sheet({
     file: 'enemy_boss.png', cw: 384, ch: 384, ax: 192, ay: 262.3, scale: 1.15,
     anims: { walk: { row: 0, frames: 4 }, slash: { row: 1, frames: 4 }, cast: { row: 2, frames: 3 }, slam: { row: 3, frames: 4 } },
   }),
   /** Espada vista de cima apontando para +X; âncora no punho. Desenhada no plano do chão. */
   sword: still('weapon_blade.png', 256, 80, 22.6, 40),
+  /** Martelo de guerra visto de cima (mesma convenção da espada). */
+  hammer: still('weapon_hammer.png', 256, 128, 22.6, 64),
   /** Piso repetível: 800x528 px = 400x400 unidades de chão (já achatado por TILT). */
   tile: still('arena_tile.png', 800, 528),
   /** Parede norte em y=0..160 e borda sul em y=160..288; ambas repetem a cada 200 unidades. */
@@ -158,6 +184,10 @@ export const SHEETS = {
   fireTile: still('arena_fire_tile.png', 800, 528),
   fireWall: still('arena_fire_wall.png', 400, 288),
   firePillar: still('arena_fire_pillar.png', 256, 384, 128, 285.2, 0.625),
+  /** Arena da Fase 3 (cidadela glacial). */
+  iceTile: still('arena_ice_tile.png', 800, 528),
+  iceWall: still('arena_ice_wall.png', 400, 288),
+  icePillar: still('arena_ice_pillar.png', 256, 384, 128, 285.2, 0.625),
 };
 
 export function loadSprites(): Promise<void> {

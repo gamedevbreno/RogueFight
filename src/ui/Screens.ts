@@ -8,7 +8,7 @@ import type { Upgrade } from '../game/upgrades';
  * Posição vertical (em %) da linha "idle, vista frontal" em cada sheet de herói, para o
  * retrato das cartas: linha = grupo de direção 2 (Sul) x animações; % = linha / (linhas - 1).
  */
-const FRONT_ROW = { blade: (8 / 19) * 100, mage: (6 / 14) * 100 };
+const FRONT_ROW = { blade: (8 / 19) * 100, mage: (6 / 14) * 100, warrior: (8 / 19) * 100, archer: (8 / 19) * 100 };
 
 export interface EndStats {
   cls: string;
@@ -68,6 +68,7 @@ export class Screens {
     const cards = defs.map((d, i) => `
       <button class="card class-card" style="--c:${d.color}">
         <span class="num">${i + 1}</span>
+        <div class="emblem emblem-${d.id}"></div>
         <div class="portrait" style="background-image:url(${import.meta.env.BASE_URL}sprites/player_${d.id}.png);background-position:0 ${FRONT_ROW[d.id]}%"></div>
         <h2>${d.name}</h2>
         <p class="role">${d.role}</p>
@@ -75,10 +76,10 @@ export class Screens {
         <div class="stats"><span>VIDA ${d.hp}</span><span>VELOCIDADE ${d.speed}</span></div>
       </button>`).join('');
     this.show(`
-      <div class="panel">
+      <div class="panel wide">
         <h1 class="logo">ROGUE<span>FIGHT</span></h1>
         <p class="sub">Escolha sua classe · sobreviva a ${TOTAL_WAVES} ondas</p>
-        <div class="cards">${cards}</div>
+        <div class="cards class-grid">${cards}</div>
         <p class="hint desktop-only">WASD mover · Mouse mirar · Botão esq. atacar · Espaço dash · Botão dir. (ou E) habilidade</p>
         <p class="hint touch-only">Toque para escolher · no jogo: lado esquerdo move, lado direito ataca</p>
       </div>`);

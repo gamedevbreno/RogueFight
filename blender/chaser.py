@@ -13,13 +13,27 @@ from math import sin, cos, pi
 B = rf.B
 
 rf.reset()
-M = dict(
-    body=rf.toon("body", "#ff3d81", "#a3164c", "#ff8ab3"),
-    dark=rf.toon("dark", "#4a1030", "#22061a", "#7a1c4c"),
-    bone=rf.toon("bone", "#fff0dc", "#d9a890", "#ffffff"),
-    eye=rf.glow("eye", "#fff36b"),
-    mouth=rf.glow("mouth", "#2a0616"),
-)
+# VARIANT é definido por stalker.py (Lobo Glacial); o padrão é o perseguidor carmesim.
+ICE = globals().get("VARIANT") == "ice"
+NAME = "stalker" if ICE else "chaser"
+if ICE:
+    M = dict(
+        body=rf.toon("body", "#cfeaff", "#6a96c4", "#ffffff"),
+        dark=rf.toon("dark", "#2c3e60", "#121a2c", "#46608c"),
+        bone=rf.toon("bone", "#f4fbff", "#a8c8e0", "#ffffff"),
+        eye=rf.glow("eye", "#68e8ff"),
+        mouth=rf.glow("mouth", "#0a1830"),
+        spine=rf.glow("spine", "#68e8ff"),   # crista de cristais de gelo
+    )
+else:
+    M = dict(
+        body=rf.toon("body", "#ff3d81", "#a3164c", "#ff8ab3"),
+        dark=rf.toon("dark", "#4a1030", "#22061a", "#7a1c4c"),
+        bone=rf.toon("bone", "#fff0dc", "#d9a890", "#ffffff"),
+        eye=rf.glow("eye", "#fff36b"),
+        mouth=rf.glow("mouth", "#2a0616"),
+    )
+    M["spine"] = M["dark"]
 J = {}
 
 
@@ -37,7 +51,7 @@ rf.mk("belly", B().sphere((0, -0.05, -0.12), 0.24, (0.8, 1.6, 0.6)), M["dark"], 
 sp = B()
 for y, h in ((-0.32, 0.26), (-0.12, 0.32), (0.08, 0.28), (0.26, 0.22), (0.42, 0.15)):
     sp.cone((0, y, 0.2), (0, y + 0.14, 0.2 + h), 0.075, 0, seg=8)
-rf.mk("spines", sp, M["dark"], J["body"])
+rf.mk("spines", sp, M["spine"], J["body"])
 
 j("tail", "body", (0, 0.52, 0.03))
 rf.mk("tail1", B().cone((0, -0.06, 0), (0, 0.28, 0.14), 0.09, 0.055), M["body"], J["tail"])
@@ -50,9 +64,12 @@ rf.mk("skull", B().sphere((0, -0.06, 0.02), 0.22, (0.95, 1.15, 0.88)).cone((0, -
       M["body"], J["head"])
 for sx in (1, -1):
     rf.mk("eye", B().sphere((0.12 * sx, -0.21, 0.09), 0.055, (1.1, 0.7, 0.55), rot=("Y", 24 * sx)), M["eye"], J["head"], outline=0.012)
-    rf.mk("horn", B().cone((0.12 * sx, 0.0, 0.14), (0.26 * sx, 0.06, 0.4), 0.07, 0.04, seg=10)
-          .cone((0.26 * sx, 0.06, 0.4), (0.24 * sx, -0.1, 0.58), 0.04, 0, seg=10).sphere((0.26 * sx, 0.06, 0.4), 0.04),
-          M["bone"], J["head"])
+    if ICE:   # orelhas pontudas de lobo no lugar dos chifres
+        rf.mk("ear", B().cone((0.13 * sx, 0.04, 0.12), (0.2 * sx, 0.12, 0.44), 0.1, 0, seg=6, flat=(1, 0.5)), M["body"], J["head"])
+    else:
+        rf.mk("horn", B().cone((0.12 * sx, 0.0, 0.14), (0.26 * sx, 0.06, 0.4), 0.07, 0.04, seg=10)
+              .cone((0.26 * sx, 0.06, 0.4), (0.24 * sx, -0.1, 0.58), 0.04, 0, seg=10).sphere((0.26 * sx, 0.06, 0.4), 0.04),
+              M["bone"], J["head"])
     rf.mk("fang", B().cone((0.07 * sx, -0.36, -0.07), (0.07 * sx, -0.38, -0.2), 0.03, 0, seg=6), M["bone"], J["head"], outline=0.012)
 j("jaw", "head", (0, -0.1, -0.1))
 rf.mk("jaw", B().cone((0, 0, 0), (0, -0.3, -0.03), 0.11, 0.05, seg=10, flat=(1, 0.6)), M["dark"], J["jaw"])
@@ -120,6 +137,6 @@ def lunge(i, n):
 
 ANIMS = [("chase", 4, chase), ("windup", 2, windup), ("lunge", 2, lunge)]
 if PREVIEW:
-    rf.preview(rf.TMP + "/chaser_prev.png", J["root"], [lambda: chase(0, 4), lambda: chase(1, 4), lambda: windup(1, 2), lambda: lunge(0, 2)], 320, 2.9, 0.5)
+    rf.preview(rf.TMP + "/" + NAME + "_prev.png", J["root"], [lambda: chase(0, 4), lambda: chase(1, 4), lambda: windup(1, 2), lambda: lunge(0, 2)], 320, 2.9, 0.5)
 else:
-    rf.sheet(rf.OUT + "/enemy_chaser.png", J["root"], ANIMS, 256, 256, 2.9, 0.5)
+    rf.sheet(rf.OUT + "/enemy_" + NAME + ".png", J["root"], ANIMS, 256, 256, 2.9, 0.5)

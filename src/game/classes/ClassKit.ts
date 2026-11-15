@@ -3,7 +3,7 @@ import type { Renderer } from '../../render/Renderer';
 import type { Player } from '../Player';
 import type { World } from '../World';
 
-export type ClassId = 'blade' | 'mage';
+export type ClassId = 'blade' | 'mage' | 'warrior' | 'archer';
 
 /**
  * Kit de classe: encapsula ataque primário, dash e habilidade secundária.

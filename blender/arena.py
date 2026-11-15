@@ -21,7 +21,7 @@ def stone(name, top, side, shadow):
 
 # THEME é definido por arena_fire.py antes de executar este arquivo; o padrão é a arena arcana.
 THEME = globals().get("THEME", "arcane")
-PREFIX = "arena_fire_" if THEME == "fire" else "arena_"
+PREFIX = {"arcane": "arena_", "fire": "arena_fire_", "ice": "arena_ice_"}[THEME]
 PAL = {
     "arcane": dict(
         a=("#2c2356", "#191236", "#0c081c"), b=("#251d49", "#150f2e", "#0a0718"), c=("#34296a", "#1d1540", "#0e0922"),
@@ -33,6 +33,12 @@ PAL = {
         a=("#322a2c", "#1a1416", "#0a0708"), b=("#2a2224", "#151012", "#080607"), c=("#3c3032", "#1e1719", "#0c090a"),
         cap=("#6a4034", "#3a221c", "#190f0c"), grout="#070405", rune="#ff6a14", runeDim="#b8400c",
         floorRune="#b0380c", floorRune2="#6e2408", crack="#7a280a", crystal=("#ff8a2a", "#c2410c", "#ffe08a"),
+    ),
+    # Cidadela Glacial: pedra congelada azul-escura, rachaduras e cristais de gelo ciano
+    "ice": dict(
+        a=("#1f3350", "#101c30", "#081018"), b=("#1a2c46", "#0d1828", "#060d16"), c=("#263e60", "#14223a", "#0a121e"),
+        cap=("#3a6a94", "#1e3c5a", "#0e1e30"), grout="#040810", rune="#68e8ff", runeDim="#2a90b8",
+        floorRune="#2a80a8", floorRune2="#1a5878", crack="#1f5f80", crystal=("#68e8ff", "#2a90c8", "#e8fbff"),
     ),
 }[THEME]
 
@@ -65,11 +71,11 @@ for row in range(4):
         if t in "ACR":
             m = M["a" if t == "A" else "c"]
             rf.mk(f"s{k}", B().box((cx, cy, 0.03), (1.88, 1.88, 0.06)), m, outline=0, smooth=False, bevel=0.035)
-            if (t == "A" and (row + col) % 2 == 0) or THEME == "fire":   # rachaduras
+            if (t == "A" and (row + col) % 2 == 0) or THEME != "arcane":   # rachaduras
                 ca = 28 + 53 * k          # cada laje racha num ângulo diferente
                 rf.mk(f"cr{k}", B().box((cx - 0.25 + 0.1 * (k % 3), cy + 0.15 - 0.1 * (k % 2), 0.062), (0.95, 0.04, 0.01), rot=("Z", ca))
                       .box((cx + 0.2 - 0.12 * (k % 2), cy - 0.05 + 0.1 * (k % 3), 0.062), (0.5, 0.032, 0.01), rot=("Z", ca - 68)), M["crack"], outline=0)
-            if t == "R" and THEME != "fire":         # círculo rúnico gravado (na cratera pareceria um telegraph)
+            if t == "R" and THEME == "arcane":         # círculo rúnico gravado (na cratera pareceria um telegraph)
                 rf.mk("ring", B().torus(0.62, 0.035, seg=40, c=(cx, cy, 0.062)), M["floorRune"], outline=0)
                 rf.mk("ring2", B().torus(0.36, 0.022, seg=32, c=(cx, cy, 0.062)), M["floorRune2"], outline=0)
                 g = B().box((cx, cy, 0.062), (0.2, 0.2, 0.02), rot=("Z", 45))
