@@ -315,20 +315,24 @@ export class Warrior implements ClassKit {
     // o martelo gira por código, exatamente no arco do golpe (como a espada da Lâmina)
     let ha = p.aim + 0.5;
     let len = 60;
+    let hz = z + 30;
     if (this.leapT > 0) {
       ha = this.swingAng + 2.4; // erguido para trás durante o salto
       len = 64;
+      hz = z + 52;
     } else if (this.ramT > 0) {
       ha = Math.atan2(this.dy, this.dx) + 0.2;
       len = 52;
+      hz = z + 26;
     } else if (this.swingT > 0) {
       const s = SWINGS[this.idx];
       const u = 1 - this.swingT / this.swingDur;
       if (s.slam) {
-        // 3º golpe: recua por cima do ombro e desce à frente
+        // 3º golpe: ergue por cima do ombro e desce esmagando à frente
         const e = easeOut(clamp((u - 0.1) / 0.32, 0, 1));
         ha = this.swingAng + (1 - e) * 2.6;
         len = 56 + 26 * e;
+        hz = z + 54 - 36 * e;
       } else {
         const e = easeOut(Math.min(1, u / 0.6));
         ha = this.swingAng + this.sweep * (-s.half + 2 * s.half * e);
@@ -336,15 +340,13 @@ export class Warrior implements ClassKit {
       }
     }
     const c = Math.cos(ha), s = Math.sin(ha);
-    const pitch =
-      this.leapT > 0 || (this.swingT > 0 && SWINGS[this.idx].slam && 1 - this.swingT / this.swingDur < 0.38) ? 1 : 0;
     const scale = (len / 60) * this.reach(p) ** 0.45;
-    const hammer = () => r.weapon3d(SHEETS.hammer, x + c * 12, y + s * 12, z + 30, ha, scale, pitch);
+    const hammer = () => r.weapon3d(SHEETS.hammer, x + c * 12, y + s * 12, hz, ha, scale);
 
     if (s < 0) hammer();
     r.sprite(SHEETS.warrior, pose.anim, pose.frame, x, y, z, pose);
     if (s >= 0) hammer();
-    if (p.empowered) r.glow(x + c * len, y + s * len, z + 32, 16 + 4 * Math.sin(p.t * 14), COLOR, 0.55); // martelo energizado
+    if (p.empowered) r.glow(x + c * len, y + s * len, hz, 16 + 4 * Math.sin(p.t * 14), COLOR, 0.55); // martelo energizado
     if (p.iframes > 0 && p.hurt <= 0) silhouette(r, x, y, z, 0.45, pose);
   }
 }

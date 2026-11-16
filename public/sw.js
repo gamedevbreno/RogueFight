@@ -9,7 +9,7 @@
  * Todos os caminhos são relativos ao escopo, então funciona em subpasta do GitHub Pages.
  * Para forçar a limpeza do cache antigo num deploy, aumente VERSION.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `roguefight-${VERSION}`;
 
 // Pré-cache best-effort: o JS/CSS com hash entra no cache na primeira visita (via fetch).
@@ -21,7 +21,7 @@ const SPRITES = [
   'arena_tile', 'arena_wall', 'arena_pillar',
   'arena_fire_tile', 'arena_fire_wall', 'arena_fire_pillar',
   'arena_ice_tile', 'arena_ice_wall', 'arena_ice_pillar',
-].map((n) => `./sprites/${n}.png`);
+].map((n) => `./sprites/${n}.png?v=3`);
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', ...SPRITES];
 
 self.addEventListener('install', (event) => {

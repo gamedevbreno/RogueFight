@@ -22,7 +22,7 @@ metal = rf.toon("metal", "#16607a", "#0b3442", "#3aa3c4")
 dark = rf.toon("grip", "#132436", "#070e16")
 
 root = rf.joint("root", None, (0, 0, 0))
-tilt = rf.joint("tilt", root, (0, 0, 0), rot0=(32, -16, 0))
+tilt = rf.joint("tilt", root, (0, 0, 0), rot0=(28, 0, 0))
 
 # Espada 3D volumétrica: punho na origem (0, 0, 0), lâmina apontando para +X.
 rf.mk("hand", B().sphere((0, 0, 0), 0.082), dark, tilt, outline=0.025)
@@ -47,7 +47,7 @@ rf.mk("core",
 
 CELL = 192
 COLS, ROWS = 6, 4
-ORTHO = 2.65
+ORTHO = 2.6
 os.makedirs(rf.TMP, exist_ok=True)
 out_path = os.path.join(rf.TMP, "sword_prev.png") if PREVIEW else os.path.join(rf.OUT, "weapon_blade.png")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)

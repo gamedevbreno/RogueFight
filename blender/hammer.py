@@ -23,7 +23,7 @@ wood = rf.toon("wood", "#5a3a26", "#2a1810", "#80583a")
 core = rf.glow("core", "#ffb830")
 
 root = rf.joint("root", None, (0, 0, 0))
-tilt = rf.joint("tilt", root, (0, 0, 0))
+tilt = rf.joint("tilt", root, (0, 0, 0), rot0=(20, 0, 0))
 
 # Martelo de guerra 3D volumétrico: punho em (0, 0, 0), cabeça apontando para +X.
 rf.mk("hand", B().sphere((0, 0, 0), 0.088), armor, tilt, outline=0.026)
@@ -57,12 +57,8 @@ rf.mk("rune",
 rf.mk("spike", B().cone((1.05, 0, 0), (1.26, 0, 0), 0.095, 0, seg=6), gold, tilt, outline=0.028)
 
 CELL = 224
-COLS, ROWS = 6, 8
-ORTHO = 3.05
-PITCHES = (
-    (22, -18),  # pitch 0: golpe lateral / guarda
-    (28, -50),  # pitch 1: erguido para cima (salto sísmico e 3º golpe)
-)
+COLS, ROWS = 6, 4
+ORTHO = 2.8
 os.makedirs(rf.TMP, exist_ok=True)
 out_path = os.path.join(rf.TMP, "hammer_prev.png") if PREVIEW else os.path.join(rf.OUT, "weapon_hammer.png")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -71,21 +67,18 @@ rf.camera(ORTHO, CELL, CELL, tz=0.0, ty=0.0, top_down=False)
 big = np.zeros((ROWS * CELL, COLS * CELL, 4), dtype=np.float32)
 warn = []
 
-for pitch_idx, (rx, ry) in enumerate(PITCHES):
-    for k in range(24):
-        rf.rest()
-        tilt.rotation_euler = (math.radians(rx), math.radians(ry), 0)
-        root.rotation_euler = (0, 0, -math.radians(k * 15))
-        tmp = os.path.join(rf.TMP, "w_f.png")
-        rf.render(tmp)
-        a = rf._load(tmp)
-        al = a[:, :, 3]
-        if al[0].max() > 0.02 or al[-1].max() > 0.02 or al[:, 0].max() > 0.02 or al[:, -1].max() > 0.02:
-            warn.append(f"p{pitch_idx}:ang={k * 15}")
-        col = k % COLS
-        row = pitch_idx * 4 + k // COLS
-        y0 = (ROWS - 1 - row) * CELL
-        big[y0:y0 + CELL, col * CELL:(col + 1) * CELL] = a
+for k in range(24):
+    rf.rest()
+    root.rotation_euler = (0, 0, -math.radians(k * 15))
+    tmp = os.path.join(rf.TMP, "w_f.png")
+    rf.render(tmp)
+    a = rf._load(tmp)
+    al = a[:, :, 3]
+    if al[0].max() > 0.02 or al[-1].max() > 0.02 or al[:, 0].max() > 0.02 or al[:, -1].max() > 0.02:
+        warn.append(f"ang={k * 15}")
+    col, row = k % COLS, k // COLS
+    y0 = (ROWS - 1 - row) * CELL
+    big[y0:y0 + CELL, col * CELL:(col + 1) * CELL] = a
 
 rf._save(big, out_path)
 px = CELL / ORTHO

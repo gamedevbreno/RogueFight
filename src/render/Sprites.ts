@@ -71,7 +71,7 @@ export class Sheet {
         resolve();
       };
       // BASE_URL respeita `base: './'` do Vite => funciona em subpasta do GitHub Pages
-      this.img.src = `${import.meta.env.BASE_URL}sprites/${this.def.file}`;
+      this.img.src = `${import.meta.env.BASE_URL}sprites/${this.def.file}?v=3`;
     });
   }
 
@@ -172,9 +172,9 @@ export const SHEETS = {
     anims: { walk: { row: 0, frames: 4 }, slash: { row: 1, frames: 4 }, cast: { row: 2, frames: 3 }, slam: { row: 3, frames: 4 } },
   }),
   /** Espada 3D vista em 24 ângulos (6x4); âncora no punho. */
-  sword: still('weapon_blade.png', 192, 192, 96, 96, 0.82),
-  /** Martelo de guerra 3D em 24 ângulos x 2 inclinações (6x8); âncora no punho. */
-  hammer: still('weapon_hammer.png', 224, 224, 112, 112, 0.78),
+  sword: still('weapon_blade.png', 192, 192, 96, 96, 0.78),
+  /** Martelo de guerra 3D visto em 24 ângulos (6x4); âncora no punho. */
+  hammer: still('weapon_hammer.png', 224, 224, 112, 112, 0.72),
   /** Piso repetível: 800x528 px = 400x400 unidades de chão (já achatado por TILT). */
   tile: still('arena_tile.png', 800, 528),
   /** Parede norte em y=0..160 e borda sul em y=160..288; ambas repetem a cada 200 unidades. */

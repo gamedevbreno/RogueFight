@@ -205,10 +205,10 @@ export class Renderer {
   }
 
   /**
-   * Arma pré-renderizada em 24 ângulos 3D (grade 6x4 por inclinação `pitch`),
-   * já na perspectiva da câmera (48,7°). Usa o frame mais próximo e compensa o resto em tela.
+   * Arma pré-renderizada em 24 ângulos 3D (grade 6x4) na perspectiva da câmera (48,7°).
+   * Usa o frame mais próximo do ângulo e compensa o resto em tela.
    */
-  weapon3d(s: Sheet, x: number, y: number, z: number, ang: number, scale = 1, pitch = 0): void {
+  weapon3d(s: Sheet, x: number, y: number, z: number, ang: number, scale = 1): void {
     if (!s.ready) return;
     const d = s.def;
     const norm = ((ang % TAU) + TAU) % TAU;
@@ -217,7 +217,7 @@ export class Renderer {
     const idx = q % 24;
     const rem = norm - q * step;
     const col = idx % 6;
-    const row = pitch * 4 + Math.floor(idx / 6);
+    const row = Math.floor(idx / 6);
     const k = d.scale * scale;
     const ctx = this.ctx;
     ctx.save();
