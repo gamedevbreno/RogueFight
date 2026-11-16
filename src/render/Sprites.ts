@@ -171,10 +171,10 @@ export const SHEETS = {
     file: 'enemy_boss.png', cw: 384, ch: 384, ax: 192, ay: 262.3, scale: 1.15,
     anims: { walk: { row: 0, frames: 4 }, slash: { row: 1, frames: 4 }, cast: { row: 2, frames: 3 }, slam: { row: 3, frames: 4 } },
   }),
-  /** Espada vista de cima apontando para +X; âncora no punho. Desenhada no plano do chão. */
-  sword: still('weapon_blade.png', 256, 80, 22.6, 40),
-  /** Martelo de guerra visto de cima (mesma convenção da espada). */
-  hammer: still('weapon_hammer.png', 256, 128, 22.6, 64),
+  /** Espada 3D vista em 24 ângulos (6x4); âncora no punho. */
+  sword: still('weapon_blade.png', 192, 192, 96, 96, 0.82),
+  /** Martelo de guerra 3D em 24 ângulos x 2 inclinações (6x8); âncora no punho. */
+  hammer: still('weapon_hammer.png', 224, 224, 112, 112, 0.78),
   /** Piso repetível: 800x528 px = 400x400 unidades de chão (já achatado por TILT). */
   tile: still('arena_tile.png', 800, 528),
   /** Parede norte em y=0..160 e borda sul em y=160..288; ambas repetem a cada 200 unidades. */

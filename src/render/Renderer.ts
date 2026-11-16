@@ -205,20 +205,26 @@ export class Renderer {
   }
 
   /**
-   * Sprite "deitado" no plano horizontal em altura z e girado por `ang` no mundo
-   * (espada, martelo): o TILT entra na matriz, então o giro acompanha a perspectiva do chão.
-   * `wide` engrossa a arma na tela; `pad` são os px vazios depois da ponta na imagem.
+   * Arma pré-renderizada em 24 ângulos 3D (grade 6x4 por inclinação `pitch`),
+   * já na perspectiva da câmera (48,7°). Usa o frame mais próximo e compensa o resto em tela.
    */
-  flat(s: Sheet, x: number, y: number, z: number, ang: number, len: number, wide = 1.5, pad = 45): void {
+  weapon3d(s: Sheet, x: number, y: number, z: number, ang: number, scale = 1, pitch = 0): void {
     if (!s.ready) return;
     const d = s.def;
-    const k = len / (d.cw - d.ax - pad);
+    const norm = ((ang % TAU) + TAU) % TAU;
+    const step = TAU / 24;
+    const q = Math.round(norm / step);
+    const idx = q % 24;
+    const rem = norm - q * step;
+    const col = idx % 6;
+    const row = pitch * 4 + Math.floor(idx / 6);
+    const k = d.scale * scale;
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(this.X(x), this.Y(y, z));
-    ctx.scale(1, TILT);
-    ctx.rotate(ang);
-    ctx.drawImage(s.img, -d.ax * k, -d.ay * k * wide, d.cw * k, d.ch * k * wide);
+    ctx.rotate(rem);
+    ctx.scale(k, k);
+    ctx.drawImage(s.img, col * d.cw, row * d.ch, d.cw, d.ch, -d.ax, -d.ay, d.cw, d.ch);
     ctx.restore();
   }
 

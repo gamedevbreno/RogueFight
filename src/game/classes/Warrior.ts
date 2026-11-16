@@ -336,7 +336,10 @@ export class Warrior implements ClassKit {
       }
     }
     const c = Math.cos(ha), s = Math.sin(ha);
-    const hammer = () => r.flat(SHEETS.hammer, x + c * 10, y + s * 10, z + 32, ha, len * this.reach(p) ** 0.5, 1, 8);
+    const pitch =
+      this.leapT > 0 || (this.swingT > 0 && SWINGS[this.idx].slam && 1 - this.swingT / this.swingDur < 0.38) ? 1 : 0;
+    const scale = (len / 60) * this.reach(p) ** 0.45;
+    const hammer = () => r.weapon3d(SHEETS.hammer, x + c * 12, y + s * 12, z + 30, ha, scale, pitch);
 
     if (s < 0) hammer();
     r.sprite(SHEETS.warrior, pose.anim, pose.frame, x, y, z, pose);

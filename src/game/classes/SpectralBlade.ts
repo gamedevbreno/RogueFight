@@ -285,7 +285,8 @@ export class SpectralBlade implements ClassKit {
       len = 76;
     }
     const c = Math.cos(sa), s = Math.sin(sa);
-    const sword = () => r.flat(SHEETS.sword, x + c * 12, y + s * 12, 30, sa, len);
+    const scale = (len / 66) * (1 + 0.1 * p.up('wide'));
+    const sword = () => r.weapon3d(SHEETS.sword, x + c * 14, y + s * 14, 28, sa, scale);
 
     if (s < 0) sword(); // espada "atrás" do corpo quando aponta para o fundo
     r.sprite(SHEETS.blade, pose.anim, pose.frame, x, y, 0, pose);

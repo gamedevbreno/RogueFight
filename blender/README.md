@@ -7,10 +7,10 @@ modelo do zero (malhas, materiais toon, juntas e poses) e renderiza a spriteshee
 | Script | Saída |
 |---|---|
 | `blade.py` | `player_blade.png` — Lâmina Espectral (idle, run, attack, dash) |
-| `sword.py` | `weapon_blade.png` (espada vista de cima) |
+| `sword.py` | `weapon_blade.png` (espada 3D em 24 ângulos) |
 | `mage.py` | `player_mage.png` — Arcanista (idle, run, cast) |
 | `warrior.py` | `player_warrior.png` — Valquíria de Ferro (idle, run, attack, dash) |
-| `hammer.py` | `weapon_hammer.png` (martelo de guerra visto de cima) |
+| `hammer.py` | `weapon_hammer.png` (martelo de guerra 3D em 24 ângulos × 2 inclinações) |
 | `archer.py` | `player_archer.png` — Caçador Astral (idle, run, shoot, dash) |
 | `chaser.py` | `enemy_chaser.png` (chase, windup, lunge) |
 | `shooter.py` | `enemy_shooter.png` (float, charging) |

@@ -91,24 +91,29 @@ for s, sx in (("L", 1), ("R", -1)):
     rf.mk("cuff" + s, B().cone((0, 0, -0.17), (0, 0, -0.21), 0.07, 0.07), M["neon"], J["fore" + s], outline=0)
     rf.mk("hand" + s, B().sphere((0, 0, -0.27), 0.066), M["skin"], J["fore" + s])
 
-# arco energético na mão esquerda: plano local XZ, a corda fica do lado do corpo
+# arco energético na mão esquerda: perfil 3D encorpado com punho esculpido e núcleo brilhante
 j("bow", "foreL", (0, 0, -0.28))
 bow, glowb = B(), B()
 N, R, SPAN = 8, 0.5, 62
+bow.sphere((0, -R * cos(radians(-SPAN)) + R * 0.72, R * sin(radians(-SPAN))), 0.050)
 for k in range(N):
     a0, a1 = radians(-SPAN + 2 * SPAN * k / N), radians(-SPAN + 2 * SPAN * (k + 1) / N)
     p0 = (0, -R * cos(a0) + R * 0.72, R * sin(a0))
     p1 = (0, -R * cos(a1) + R * 0.72, R * sin(a1))
-    bow.cone(p0, p1, 0.032, 0.032, seg=6)
-    bow.sphere(p1, 0.032)
+    bow.cone(p0, p1, 0.050, 0.050, seg=8)
+    bow.sphere(p1, 0.050)
 tip_y = -R * cos(radians(SPAN)) + R * 0.72
 tip_z = R * sin(radians(SPAN))
 rf.mk("bow", bow, M["leather"], J["bow"])
-glowb.cone((0, tip_y, -tip_z), (0, tip_y, tip_z), 0.012, 0.012, seg=5)
-glowb.sphere((0, tip_y, tip_z), 0.05).sphere((0, tip_y, -tip_z), 0.05)
+rf.mk("bow_riser", B().box((0, -0.14, 0), (0.09, 0.14, 0.24)), M["leather"], J["bow"], bevel=0.02)
+rf.mk("bow_core", B().sphere((0, -0.20, 0), 0.065, (1.1, 0.8, 1.3)), M["neon"], J["bow"], outline=0.014)
+glowb.cone((0, tip_y, -tip_z), (0, tip_y, tip_z), 0.018, 0.018, seg=6)
+glowb.sphere((0, tip_y, tip_z), 0.06).sphere((0, tip_y, -tip_z), 0.06)
+glowb.cone((0, tip_y - 0.03, tip_z - 0.03), (0, tip_y + 0.04, tip_z + 0.05), 0.048, 0.015, seg=6)
+glowb.cone((0, tip_y - 0.03, -tip_z + 0.03), (0, tip_y + 0.04, -tip_z - 0.05), 0.048, 0.015, seg=6)
 rf.mk("string", glowb, M["neon"], J["bow"], outline=0)
 j("arrow", "bow", (0, 0, 0))
-rf.mk("arrow", B().cone((0, 0.34, 0), (0, -0.42, 0), 0.016, 0.016, seg=5).cone((0, -0.42, 0), (0, -0.56, 0), 0.045, 0, seg=6), M["neon"], J["arrow"], outline=0.012)
+rf.mk("arrow", B().cone((0, 0.34, 0), (0, -0.42, 0), 0.024, 0.024, seg=6).cone((0, -0.42, 0), (0, -0.58, 0), 0.06, 0, seg=6), M["neon"], J["arrow"], outline=0.014)
 
 
 # ---------------------------------------------------------------- poses
@@ -134,7 +139,7 @@ def idle(i, n):
         rf.rot(J["leg" + s], 0, -5 * sx, 0)
     rf.rot(J["armL"], -24 + 3 * b, -14, 0); rf.rot(J["foreL"], -40)
     rf.rot(J["armR"], 3 * b, 9, 0); rf.rot(J["foreR"], -14)
-    rf.rot(J["bow"], 60, 0, 0)        # arco em pé ao lado do corpo
+    rf.rot(J["bow"], 60, 28, 14)        # arco inclinado em 3D ao lado do corpo
     arrow(False)
     flutter(t, 0.7, 6)
 
@@ -149,7 +154,7 @@ def run(i, n):
         rf.rot(J["shin" + s], 12 + 60 * max(0, cos(p)))
     rf.rot(J["armL"], -30 + 14 * sin(ph), -12, 0); rf.rot(J["foreL"], -50)
     rf.rot(J["armR"], -40 * sin(ph), 8, 0); rf.rot(J["foreR"], -50)
-    rf.rot(J["bow"], 70, 0, 0)
+    rf.rot(J["bow"], 70, 28, 14)
     arrow(False)
     flutter(i / n, 1.2, 50)
 
@@ -162,7 +167,7 @@ def shoot(i, n):
     rf.rot(J["head"], 0, 0, -30)
     rf.rot(J["legL"], -16, -8, 0); rf.rot(J["legR"], 14, 8, 0)
     rf.rot(J["armL"], -90, 0, -34); rf.rot(J["foreL"], 0)   # braço do arco estendido para o alvo (desfaz o giro do tronco)
-    rf.rot(J["bow"], 90, 0, 0)
+    rf.rot(J["bow"], 68, 22, 0)
     rf.rot(J["armR"], -84, 0, -34 - 14 * pull); rf.rot(J["foreR"], -20 - 110 * pull)   # mão da corda recua até o rosto
     arrow(i < 2)
     rf.move(J["arrow"], dy=0.2 * pull)
@@ -180,7 +185,7 @@ def dash(i, n):
     rf.rot(J["legR"], 20 * k, 0, 0); rf.rot(J["shinR"], 60 * k)
     rf.rot(J["armL"], -110 * k, -10, 0); rf.rot(J["foreL"], -10)
     rf.rot(J["armR"], 60 * k, 10, 0); rf.rot(J["foreR"], -30)
-    rf.rot(J["bow"], 90, 0, 0)
+    rf.rot(J["bow"], 75, 25, 0)
     arrow(False)
     flutter(0.2 * i, 1.0, 70 * k)
 
